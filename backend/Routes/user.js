@@ -8,6 +8,14 @@ router.post("/sync", verifyFirebaseToken, async (req, res) => {
   try {
     const firebaseUser = req.firebaseUser;
 
+    const allowedInitialLanguages = ["en", "es", "hi", "pt", "zh"];
+
+    const requestedLanguage = req.body.preferredLanguage;
+
+    const initialLanguage = allowedInitialLanguages.includes(requestedLanguage)
+      ? requestedLanguage
+      : "en";
+
     const user = await User.findOneAndUpdate(
       {
         firebaseUid: firebaseUser.uid,
@@ -18,6 +26,10 @@ router.post("/sync", verifyFirebaseToken, async (req, res) => {
           email: firebaseUser.email || "",
           photo: firebaseUser.picture || "",
           phoneNumber: firebaseUser.phone_number || "",
+        },
+
+        $setOnInsert: {
+          preferredLanguage: initialLanguage,
         },
       },
       {

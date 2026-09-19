@@ -15,6 +15,7 @@
   },
   "language": {
     "selectLanguage": "Seleccionar idioma",
-    "frenchVerificationRequired": "Se requiere verificación por correo electrónico para cambiar al francés."
+    "frenchVerificationRequired": "Se requiere verificación por correo electrónico para cambiar al francés.",
+    "changeFailed": "No se pudo cambiar el idioma. Inténtalo de nuevo."
   }
 }

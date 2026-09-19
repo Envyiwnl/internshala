@@ -15,6 +15,7 @@
   },
   "language": {
     "selectLanguage": "भाषा चुनें",
-    "frenchVerificationRequired": "फ़्रेंच भाषा में बदलने के लिए ईमेल सत्यापन आवश्यक है।"
+    "frenchVerificationRequired": "फ़्रेंच भाषा में बदलने के लिए ईमेल सत्यापन आवश्यक है।",
+    "changeFailed": "भाषा बदलने में असमर्थ। कृपया पुनः प्रयास करें।"
   }
 }

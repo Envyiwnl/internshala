@@ -15,6 +15,7 @@
   },
   "language": {
     "selectLanguage": "选择语言",
-    "frenchVerificationRequired": "切换到法语需要进行电子邮件验证。"
+    "frenchVerificationRequired": "切换到法语需要进行电子邮件验证。",
+    "changeFailed": "无法更改语言。请重试。"
   }
 }

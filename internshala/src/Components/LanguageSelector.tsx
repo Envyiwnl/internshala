@@ -1,5 +1,6 @@
 import { ChangeEvent } from "react";
 import { useTranslation } from "react-i18next";
+import { auth } from "@/firebase/firebase";
 import { toast } from "react-toastify";
 import { SUPPORTED_LANGUAGES, SupportedLanguage } from "@/i18n/i18n";
 import { saveLanguagePreference } from "@/i18n/languageStorage";
@@ -14,14 +15,57 @@ export default function LanguageSelector() {
 
     if (selectedLanguage === "fr") {
       toast.info(t("language.frenchVerificationRequired"));
+
       return;
     }
 
-    await i18n.changeLanguage(selectedLanguage);
+    try {
+      const currentUser = auth.currentUser;
 
-    saveLanguagePreference(selectedLanguage);
+      if (currentUser) {
+        const idToken = await currentUser.getIdToken();
 
-    document.documentElement.lang = selectedLanguage;
+        const response = await fetch(
+          "https://internshala-78tb.onrender.com/api/language",
+          {
+            method: "PUT",
+
+            headers: {
+              Authorization: `Bearer ${idToken}`,
+              "Content-Type": "application/json",
+            },
+
+            body: JSON.stringify({
+              language: selectedLanguage,
+            }),
+          },
+        );
+
+        if (!response.ok) {
+          throw new Error("Language update failed");
+        }
+
+        const data = await response.json();
+
+        await i18n.changeLanguage(data.preferredLanguage);
+
+        saveLanguagePreference(data.preferredLanguage);
+
+        document.documentElement.lang = data.preferredLanguage;
+
+        return;
+      }
+
+      await i18n.changeLanguage(selectedLanguage);
+
+      saveLanguagePreference(selectedLanguage);
+
+      document.documentElement.lang = selectedLanguage;
+    } catch (error) {
+      console.error("Language change failed:", error);
+
+      toast.error(t("language.changeFailed"));
+    }
   };
 
   return (

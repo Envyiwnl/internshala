@@ -15,6 +15,7 @@
   },
   "language": {
     "selectLanguage": "Select language",
-    "frenchVerificationRequired": "Email verification is required to switch to French."
+    "frenchVerificationRequired": "Email verification is required to switch to French.",
+    "changeFailed": "Unable to change the language. Please try again."
   }
 }

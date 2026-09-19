@@ -9,7 +9,9 @@ export default function LanguageInitializer() {
   useEffect(() => {
     const savedLanguage = getSavedLanguagePreference();
 
-    const language = savedLanguage || getBrowserLanguage();
+    const candidateLanguage = savedLanguage || getBrowserLanguage();
+
+    const language = candidateLanguage === "fr" ? "en" : candidateLanguage;
 
     i18n.changeLanguage(language);
 
