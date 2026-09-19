@@ -59,7 +59,9 @@ function index() {
   useEffect(() => {
     const fetchdata = async () => {
       try {
-        const res = await axios.get("http://localhost:5001/api/internship");
+        const res = await axios.get(
+          "https://internshala-78tb.onrender.com/api/internship",
+        );
         setInternshipData(res.data);
         setFilteredInternships(res.data);
       } catch (error) {

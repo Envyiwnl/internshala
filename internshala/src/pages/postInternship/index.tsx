@@ -49,7 +49,7 @@ const index = () => {
     try {
       setisloading(true);
       const res = await axios.post(
-        `http://localhost:5001/api/internship`,
+        `https://internshala-78tb.onrender.com/api/internship`,
         formData,
       );
       toast.success("Job posted successfuly");

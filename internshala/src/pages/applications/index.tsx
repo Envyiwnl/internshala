@@ -77,7 +77,7 @@ const index = () => {
   const handleacceptandreject = async (id: any, action: any) => {
     try {
       const res = await axios.put(
-        `http://localhost:5001/api/application/${id}`,
+        `https://internshala-78tb.onrender.com/api/application/${id}`,
         { action },
       );
       const updateapplication = Applications.map((app: any) =>

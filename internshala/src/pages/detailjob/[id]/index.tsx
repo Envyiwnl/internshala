@@ -123,7 +123,7 @@ const index = () => {
   useEffect(() => {
     const fetchdata = async () => {
       try {
-        const res = await axios.get(`http://localhost:5001/api/job/${id}`);
+        const res = await axios.get(`https://internshala-78tb.onrender.com/api/job/${id}`);
         setJobData(res.data);
       } catch (error) {
         console.log(error);

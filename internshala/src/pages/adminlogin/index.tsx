@@ -30,7 +30,7 @@ const index = () => {
     try {
       setisloading(true);
       const res = await axios.post(
-        `http://localhost:5001/api/admin/adminlogin`,
+        `https://internshala-78tb.onrender.com/api/admin/adminlogin`,
         formdata,
       );
       toast.success("logged in successfuly");

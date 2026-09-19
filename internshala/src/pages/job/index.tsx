@@ -126,7 +126,7 @@ function index() {
   useEffect(() => {
     const fetchdata = async () => {
       try {
-        const res = await axios.get("http://localhost:5001/api/job");
+        const res = await axios.get("https://internshala-78tb.onrender.com/api/job");
         setFilteredJobs(res.data);
       } catch (error) {
         console.log(error);
