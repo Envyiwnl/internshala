@@ -1,5 +1,5 @@
-import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import LanguageSelector from "./LanguageSelector";
 import { Search } from "lucide-react";
 import { auth, provider } from "../firebase/firebase";
 import { signInWithPopup, signOut } from "firebase/auth";
@@ -62,6 +62,7 @@ export const Navbar = () => {
             </div>
 
             <div className="flex items-center space-x-4">
+              <LanguageSelector />
               {user ? (
                 <div className="relative flex">
                   <button className="flex items-center space-x-2">

@@ -1,44 +1,35 @@
 import React, { useEffect, useState } from "react";
-import {
-  Building2,
-  Calendar,
-  CheckCircle2,
-  Mail,
-  Tag,
-  User,
-  XCircle,
-} from "lucide-react";
-import Link from "next/link";
+import { Building2, Calendar, Mail, Tag, User } from "lucide-react";
 import { useSelector } from "react-redux";
 import { selectuser } from "@/feature/userSlice";
 import axios from "axios";
 
-const Applications = [
-  {
-    _id: "1",
-    company: "Tech Corp",
-    category: "Software",
-    user: { name: "John Doe", email: "john@example.com" },
-    createAt: "2024-03-10T12:00:00Z",
-    status: "approved",
-  },
-  {
-    _id: "2",
-    company: "Health Solutions",
-    category: "Healthcare",
-    user: { name: "Rahul", email: "jane@example.com" },
-    createAt: "2024-03-08T10:30:00Z",
-    status: "pending",
-  },
-  {
-    _id: "3",
-    company: "EduLearn",
-    category: "Education",
-    user: { name: "Rahul", email: "alice@example.com" },
-    createAt: "2024-03-05T09:15:00Z",
-    status: "rejected",
-  },
-];
+// const Applications = [
+//   {
+//     _id: "1",
+//     company: "Tech Corp",
+//     category: "Software",
+//     user: { name: "John Doe", email: "john@example.com" },
+//     createAt: "2024-03-10T12:00:00Z",
+//     status: "approved",
+//   },
+//   {
+//     _id: "2",
+//     company: "Health Solutions",
+//     category: "Healthcare",
+//     user: { name: "Rahul", email: "jane@example.com" },
+//     createAt: "2024-03-08T10:30:00Z",
+//     status: "pending",
+//   },
+//   {
+//     _id: "3",
+//     company: "EduLearn",
+//     category: "Education",
+//     user: { name: "Rahul", email: "alice@example.com" },
+//     createAt: "2024-03-05T09:15:00Z",
+//     status: "rejected",
+//   },
+// ];
 
 const getStatusColor = (status: any) => {
   switch (status.toLowerCase()) {

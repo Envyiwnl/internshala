@@ -1,0 +1,20 @@
+{
+  "navbar": {
+    "home": "首页",
+    "internships": "实习",
+    "jobs": "职位",
+    "login": "登录",
+    "logout": "退出登录",
+    "profile": "个人资料",
+    "language": "语言"
+  },
+  "common": {
+    "loading": "加载中...",
+    "save": "保存",
+    "cancel": "取消"
+  },
+  "language": {
+    "selectLanguage": "选择语言",
+    "frenchVerificationRequired": "切换到法语需要进行电子邮件验证。"
+  }
+}

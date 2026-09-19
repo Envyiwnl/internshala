@@ -1,0 +1,20 @@
+{
+  "navbar": {
+    "home": "होम",
+    "internships": "इंटर्नशिप",
+    "jobs": "नौकरियां",
+    "login": "लॉग इन",
+    "logout": "लॉग आउट",
+    "profile": "प्रोफ़ाइल",
+    "language": "भाषा"
+  },
+  "common": {
+    "loading": "लोड हो रहा है...",
+    "save": "सहेजें",
+    "cancel": "रद्द करें"
+  },
+  "language": {
+    "selectLanguage": "भाषा चुनें",
+    "frenchVerificationRequired": "फ़्रेंच भाषा में बदलने के लिए ईमेल सत्यापन आवश्यक है।"
+  }
+}

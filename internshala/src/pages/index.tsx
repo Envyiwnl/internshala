@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Swiper, SwiperSlide } from "swiper/react";
+import { useTranslation } from "react-i18next";
 import { Navigation, Pagination, Autoplay } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/navigation";
@@ -132,7 +133,6 @@ export default function SvgSlider() {
     };
     fetchdata();
   }, []);
-
   const [selectedCategory, setSelectedCategory] = useState("");
   const filteredInternships = internships.filter(
     (item: any) => !selectedCategory || item.category === selectedCategory,

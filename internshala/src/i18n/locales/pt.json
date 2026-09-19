@@ -1,0 +1,20 @@
+{
+  "navbar": {
+    "home": "Início",
+    "internships": "Estágios",
+    "jobs": "Empregos",
+    "login": "Entrar",
+    "logout": "Sair",
+    "profile": "Perfil",
+    "language": "Idioma"
+  },
+  "common": {
+    "loading": "Carregando...",
+    "save": "Salvar",
+    "cancel": "Cancelar"
+  },
+  "language": {
+    "selectLanguage": "Selecionar idioma",
+    "frenchVerificationRequired": "A verificação por e-mail é necessária para mudar para francês."
+  }
+}

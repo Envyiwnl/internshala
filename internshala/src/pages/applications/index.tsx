@@ -57,7 +57,9 @@ const index = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await axios.get("http://localhost:5001/api/application");
+        const res = await axios.get(
+          "https://internshala-78tb.onrender.com/api/application",
+        );
         setApplications(res.data);
       } catch (error) {
         console.log(error);
