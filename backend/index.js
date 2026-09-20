@@ -4,7 +4,7 @@ const app = express();
 const cors = require("cors");
 const { connect } = require("./db");
 const router = require("./Routes/index");
-const port = 5001;
+const PORT = process.env.PORT || 5001;
 
 const corsOptions = {
   origin: ["https://internshala-beta.vercel.app", "http://localhost:3000"],
@@ -23,6 +23,6 @@ app.get("/", (req, res) => {
 app.use("/api", router);
 connect();
 
-app.listen(port, () => {
-  console.log(`Server is running on the port ${port}`);
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`Server is running on port ${PORT}`);
 });
