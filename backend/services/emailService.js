@@ -1,42 +1,74 @@
-const { Resend } = require("resend");
-
-const resend = new Resend(process.env.RESEND_API_KEY);
+const axios = require("axios");
 
 const sendFrenchLanguageOtp = async ({ email, otp }) => {
-  const { data, error } = await resend.emails.send({
-    from: "Internshala <onboarding@resend.dev>",
-    to: email,
-    subject: "French language verification code",
+  try {
+    const response = await axios.post(
+      "https://api.mailjet.com/v3.1/send",
+      {
+        Messages: [
+          {
+            From: {
+              Email: process.env.MAILJET_SENDER_EMAIL,
+              Name: "Internshala",
+            },
 
-    html: `
-      <div>
-        <h2>Language verification</h2>
+            To: [
+              {
+                Email: email,
+              },
+            ],
 
-        <p>
-          You requested to change your website language to French.
-        </p>
+            Subject: "French language verification code",
 
-        <p>Your verification code is:</p>
+            TextPart: `Your verification code is ${otp}. It expires in 10 minutes.`,
 
-        <h1>${otp}</h1>
+            HTMLPart: `
+              <div>
+                <h2>Language verification</h2>
 
-        <p>
-          This code expires in 10 minutes.
-        </p>
+                <p>
+                  You requested to change your website
+                  language to French.
+                </p>
 
-        <p>
-          If you did not request this change,
-          you can ignore this email.
-        </p>
-      </div>
-    `,
-  });
+                <p>Your verification code is:</p>
 
-  if (error) {
-    throw new Error(error.message || "Failed to send OTP email");
+                <h1>${otp}</h1>
+
+                <p>
+                  This code expires in 10 minutes.
+                </p>
+
+                <p>
+                  If you did not request this change,
+                  you can ignore this email.
+                </p>
+              </div>
+            `,
+          },
+        ],
+      },
+      {
+        auth: {
+          username: process.env.MAILJET_API_KEY,
+          password: process.env.MAILJET_SECRET_KEY,
+        },
+
+        headers: {
+          "Content-Type": "application/json",
+        },
+      },
+    );
+
+    return response.data;
+  } catch (error) {
+    console.error(
+      "Mailjet email error:",
+      error.response?.data || error.message,
+    );
+
+    throw new Error("Failed to send OTP email");
   }
-
-  return data;
 };
 
 module.exports = {
