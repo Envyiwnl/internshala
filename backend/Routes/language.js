@@ -1,4 +1,21 @@
 const express = require("express");
+const crypto = require("node:crypto");
+
+const LanguageOtp = require("../Model/LanguageOtp");
+
+const { sendFrenchLanguageOtp } = require("../services/emailService");
+
+const OTP_EXPIRY_MS = 10 * 60 * 1000;
+const OTP_COOLDOWN_MS = 60 * 1000;
+const REQUEST_WINDOW_MS = 15 * 60 * 1000;
+const MAX_REQUESTS_PER_WINDOW = 5;
+
+const hashOtp = (userId, otp) => {
+  return crypto
+    .createHmac("sha256", process.env.OTP_HASH_SECRET)
+    .update(`${userId}:${otp}`)
+    .digest("hex");
+};
 
 const User = require("../Model/User");
 const verifyFirebaseToken = require("../middleware/verifyFirebaseToken");
@@ -53,6 +70,112 @@ router.put("/", verifyFirebaseToken, async (req, res) => {
 
     return res.status(500).json({
       error: "LANGUAGE_UPDATE_FAILED",
+    });
+  }
+});
+
+router.post("/french/request-otp", verifyFirebaseToken, async (req, res) => {
+  try {
+    const user = await User.findOne({
+      firebaseUid: req.firebaseUser.uid,
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        error: "USER_NOT_FOUND",
+      });
+    }
+
+    if (!user.email) {
+      return res.status(400).json({
+        error: "EMAIL_NOT_AVAILABLE",
+      });
+    }
+
+    const now = new Date();
+
+    const existingOtp = await LanguageOtp.findOne({
+      user: user._id,
+    });
+
+    if (existingOtp?.lastSentAt) {
+      const timeSinceLastRequest =
+        now.getTime() - existingOtp.lastSentAt.getTime();
+
+      if (timeSinceLastRequest < OTP_COOLDOWN_MS) {
+        const retryAfter = Math.ceil(
+          (OTP_COOLDOWN_MS - timeSinceLastRequest) / 1000,
+        );
+
+        return res.status(429).json({
+          error: "OTP_RESEND_TOO_SOON",
+          retryAfter,
+        });
+      }
+    }
+
+    let requestCount = 1;
+    let requestWindowStartedAt = now;
+
+    if (existingOtp?.requestWindowStartedAt) {
+      const windowAge =
+        now.getTime() - existingOtp.requestWindowStartedAt.getTime();
+
+      if (windowAge < REQUEST_WINDOW_MS) {
+        if (existingOtp.requestCount >= MAX_REQUESTS_PER_WINDOW) {
+          return res.status(429).json({
+            error: "OTP_REQUEST_LIMIT_REACHED",
+          });
+        }
+
+        requestCount = existingOtp.requestCount + 1;
+
+        requestWindowStartedAt = existingOtp.requestWindowStartedAt;
+      }
+    }
+
+    const otp = crypto.randomInt(100000, 1000000).toString();
+
+    const otpHash = hashOtp(user._id.toString(), otp);
+
+    const expiresAt = new Date(now.getTime() + OTP_EXPIRY_MS);
+
+    await sendFrenchLanguageOtp({
+      email: user.email,
+      otp,
+    });
+
+    await LanguageOtp.findOneAndUpdate(
+      {
+        user: user._id,
+      },
+      {
+        $set: {
+          targetLanguage: "fr",
+          otpHash,
+          expiresAt,
+          attempts: 0,
+          requestCount,
+          requestWindowStartedAt,
+          lastSentAt: now,
+        },
+      },
+      {
+        upsert: true,
+        new: true,
+        setDefaultsOnInsert: true,
+      },
+    );
+
+    return res.status(200).json({
+      message: "OTP_SENT",
+      expiresIn: 600,
+    });
+  } catch (error) {
+    console.error("French OTP request failed:", error);
+
+    return res.status(500).json({
+      error: "OTP_SEND_FAILED",
     });
   }
 });

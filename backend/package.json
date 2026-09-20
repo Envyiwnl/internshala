@@ -20,6 +20,7 @@
     "firebase-admin": "^14.4.0",
     "mongodb": "^7.6.0",
     "mongoose": "^9.10.1",
+    "nodemailer": "^10.0.10",
     "nodemon": "^3.1.14"
   }
 }
