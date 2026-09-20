@@ -16,6 +16,9 @@
   "language": {
     "selectLanguage": "Select language",
     "frenchVerificationRequired": "Email verification is required to switch to French.",
-    "changeFailed": "Unable to change the language. Please try again."
+    "changeFailed": "Unable to change the language. Please try again.",
+    "otpSent": "A verification code has been sent to your registered email.",
+    "otpSendFailed": "Unable to send the verification code. Please try again.",
+    "loginRequired": "Please log in before switching to French."
   }
 }

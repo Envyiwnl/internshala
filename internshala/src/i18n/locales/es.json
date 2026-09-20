@@ -16,6 +16,9 @@
   "language": {
     "selectLanguage": "Seleccionar idioma",
     "frenchVerificationRequired": "Se requiere verificación por correo electrónico para cambiar al francés.",
-    "changeFailed": "No se pudo cambiar el idioma. Inténtalo de nuevo."
+    "changeFailed": "No se pudo cambiar el idioma. Inténtalo de nuevo.",
+    "otpSent": "Se ha enviado un código de verificación a tu correo electrónico registrado.",
+    "otpSendFailed": "No se pudo enviar el código de verificación. Inténtalo de nuevo.",
+    "loginRequired": "Inicia sesión antes de cambiar al francés."
   }
 }

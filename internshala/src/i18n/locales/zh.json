@@ -16,6 +16,9 @@
   "language": {
     "selectLanguage": "选择语言",
     "frenchVerificationRequired": "切换到法语需要进行电子邮件验证。",
-    "changeFailed": "无法更改语言。请重试。"
+    "changeFailed": "无法更改语言。请重试。",
+    "otpSent": "验证码已发送到您的注册邮箱。",
+    "otpSendFailed": "无法发送验证码。请重试。",
+    "loginRequired": "请先登录，然后再切换到法语。"
   }
 }

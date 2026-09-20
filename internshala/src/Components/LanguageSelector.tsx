@@ -14,7 +14,46 @@ export default function LanguageSelector() {
     const selectedLanguage = event.target.value as SupportedLanguage;
 
     if (selectedLanguage === "fr") {
-      toast.info(t("language.frenchVerificationRequired"));
+      try {
+        const currentUser = auth.currentUser;
+
+        if (!currentUser) {
+          toast.error(t("language.loginRequired"));
+          return;
+        }
+
+        const idToken = await currentUser.getIdToken();
+
+        const response = await fetch(
+          "https://internshala-78tb.onrender.com/api/language/french/request-otp",
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${idToken}`,
+              "Content-Type": "application/json",
+            },
+          },
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          if (data.error === "OTP_RESEND_TOO_SOON") {
+            toast.info(
+              `Please wait ${data.retryAfter} seconds before requesting another OTP.`,
+            );
+            return;
+          }
+
+          throw new Error(data.error || "OTP request failed");
+        }
+
+        toast.success(t("language.otpSent"));
+      } catch (error) {
+        console.error("French OTP request failed:", error);
+
+        toast.error(t("language.otpSendFailed"));
+      }
 
       return;
     }
