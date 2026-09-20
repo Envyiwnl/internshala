@@ -1,14 +1,8 @@
-import React, { useState } from "react";
 import { ExternalLink, Mail, User } from "lucide-react";
 import Link from "next/link";
 import { useSelector } from "react-redux";
 import { selectuser } from "@/feature/userSlice";
-
-interface User {
-  name: string;
-  email: string;
-  photo: string;
-}
+import LanguageHistory from "@/Components/LanguageHistory";
 
 const index = () => {
   const user = useSelector(selectuser);
@@ -67,6 +61,7 @@ const index = () => {
                   <ExternalLink className="ml-2 h-4 w-4" />
                 </Link>
               </div>
+              <LanguageHistory />
             </div>
           </div>
         </div>
