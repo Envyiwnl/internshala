@@ -19,6 +19,17 @@
     "changeFailed": "No se pudo cambiar el idioma. Inténtalo de nuevo.",
     "otpSent": "Se ha enviado un código de verificación a tu correo electrónico registrado.",
     "otpSendFailed": "No se pudo enviar el código de verificación. Inténtalo de nuevo.",
-    "loginRequired": "Inicia sesión antes de cambiar al francés."
+    "loginRequired": "Inicia sesión antes de cambiar al francés.",
+    "verifyFrench": "Verificar el cambio al francés",
+    "enterOtp": "Introduce el código de verificación de 6 dígitos enviado a tu correo electrónico registrado.",
+    "verify": "Verificar",
+    "verifying": "Verificando...",
+    "invalidOtpFormat": "Introduce un código de verificación válido de 6 dígitos.",
+    "invalidOtp": "Código de verificación incorrecto. Quedan {{attemptsLeft}} intentos.",
+    "otpExpired": "El código de verificación ha expirado. Solicita un nuevo código.",
+    "tooManyOtpAttempts": "Demasiados intentos incorrectos. Solicita un nuevo código de verificación.",
+    "otpNotFound": "No se encontró ningún código de verificación activo. Solicita un nuevo código.",
+    "verificationFailed": "No se pudo verificar el código. Inténtalo de nuevo.",
+    "frenchEnabled": "El idioma se cambió correctamente al francés."
   }
 }

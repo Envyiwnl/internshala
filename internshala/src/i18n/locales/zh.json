@@ -19,6 +19,17 @@
     "changeFailed": "无法更改语言。请重试。",
     "otpSent": "验证码已发送到您的注册邮箱。",
     "otpSendFailed": "无法发送验证码。请重试。",
-    "loginRequired": "请先登录，然后再切换到法语。"
+    "loginRequired": "请先登录，然后再切换到法语。",
+    "verifyFrench": "验证切换到法语",
+    "enterOtp": "请输入发送到您注册邮箱的 6 位验证码。",
+    "verify": "验证",
+    "verifying": "正在验证...",
+    "invalidOtpFormat": "请输入有效的 6 位验证码。",
+    "invalidOtp": "验证码不正确。您还有 {{attemptsLeft}} 次尝试机会。",
+    "otpExpired": "验证码已过期。请申请新的验证码。",
+    "tooManyOtpAttempts": "错误尝试次数过多。请申请新的验证码。",
+    "otpNotFound": "未找到有效的验证码。请申请新的验证码。",
+    "verificationFailed": "无法验证该验证码。请重试。",
+    "frenchEnabled": "语言已成功切换为法语。"
   }
 }

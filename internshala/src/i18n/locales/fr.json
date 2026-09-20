@@ -19,6 +19,17 @@
     "changeFailed": "Impossible de changer la langue. Veuillez réessayer.",
     "otpSent": "सत्यापन कोड आपके पंजीकृत ईमेल पर भेज दिया गया है।",
     "otpSendFailed": "सत्यापन कोड भेजने में असमर्थ। कृपया पुनः प्रयास करें।",
-    "loginRequired": "फ़्रेंच में बदलने से पहले कृपया लॉग इन करें।"
+    "loginRequired": "फ़्रेंच में बदलने से पहले कृपया लॉग इन करें।",
+     "verifyFrench": "Vérifier le passage au français",
+    "enterOtp": "Saisissez le code de vérification à 6 chiffres envoyé à votre adresse e-mail enregistrée.",
+    "verify": "Vérifier",
+    "verifying": "Vérification...",
+    "invalidOtpFormat": "Saisissez un code de vérification valide à 6 chiffres.",
+    "invalidOtp": "Code de vérification incorrect. Il vous reste {{attemptsLeft}} tentatives.",
+    "otpExpired": "Le code de vérification a expiré. Demandez un nouveau code.",
+    "tooManyOtpAttempts": "Trop de tentatives incorrectes. Demandez un nouveau code de vérification.",
+    "otpNotFound": "Aucun code de vérification actif n'a été trouvé. Demandez un nouveau code.",
+    "verificationFailed": "Impossible de vérifier le code. Veuillez réessayer.",
+    "frenchEnabled": "La langue a été changée en français avec succès."
   }
 }

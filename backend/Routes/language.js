@@ -180,4 +180,100 @@ router.post("/french/request-otp", verifyFirebaseToken, async (req, res) => {
   }
 });
 
+router.post("/french/verify-otp", verifyFirebaseToken, async (req, res) => {
+  try {
+    const { otp } = req.body;
+
+    if (!otp || !/^\d{6}$/.test(otp)) {
+      return res.status(400).json({
+        error: "INVALID_OTP_FORMAT",
+      });
+    }
+
+    const user = await User.findOne({
+      firebaseUid: req.firebaseUser.uid,
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        error: "USER_NOT_FOUND",
+      });
+    }
+
+    const otpRecord = await LanguageOtp.findOne({
+      user: user._id,
+    });
+
+    if (!otpRecord) {
+      return res.status(400).json({
+        error: "OTP_NOT_FOUND",
+      });
+    }
+
+    if (otpRecord.expiresAt.getTime() < Date.now()) {
+      await LanguageOtp.deleteOne({
+        _id: otpRecord._id,
+      });
+
+      return res.status(400).json({
+        error: "OTP_EXPIRED",
+      });
+    }
+
+    if (otpRecord.attempts >= 5) {
+      return res.status(429).json({
+        error: "OTP_TOO_MANY_ATTEMPTS",
+      });
+    }
+
+    const submittedHash = hashOtp(user._id.toString(), otp);
+
+    const storedBuffer = Buffer.from(otpRecord.otpHash, "hex");
+
+    const submittedBuffer = Buffer.from(submittedHash, "hex");
+
+    const isValid =
+      storedBuffer.length === submittedBuffer.length &&
+      crypto.timingSafeEqual(storedBuffer, submittedBuffer);
+
+    if (!isValid) {
+      otpRecord.attempts += 1;
+
+      await otpRecord.save();
+
+      const attemptsLeft = 5 - otpRecord.attempts;
+
+      if (attemptsLeft <= 0) {
+        return res.status(429).json({
+          error: "OTP_TOO_MANY_ATTEMPTS",
+        });
+      }
+
+      return res.status(400).json({
+        error: "INVALID_OTP",
+        attemptsLeft,
+      });
+    }
+
+    user.preferredLanguage = "fr";
+    await user.save();
+
+    // OTP must never be reusable.
+    await LanguageOtp.deleteOne({
+      _id: otpRecord._id,
+    });
+
+    return res.status(200).json({
+      message: "OTP_VERIFIED",
+      preferredLanguage: "fr",
+    });
+  } catch (error) {
+    console.error("French OTP verification failed:", error);
+
+    return res.status(500).json({
+      error: "OTP_VERIFICATION_FAILED",
+    });
+  }
+});
+
 module.exports = router;
