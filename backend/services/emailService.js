@@ -1,23 +1,38 @@
 const nodemailer = require("nodemailer");
-const dns = require("node:dns");
+const dns = require("node:dns").promises;
 
-dns.setDefaultResultOrder("ipv4first");
+const createTransporter = async () => {
+  const addresses = await dns.resolve4("smtp.gmail.com");
 
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  port: 465,
-  secure: true,
+  if (!addresses.length) {
+    throw new Error("Unable to resolve Gmail SMTP IPv4 address");
+  }
 
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-});
+  const ipv4Address = addresses[0];
+
+  return nodemailer.createTransport({
+    host: ipv4Address,
+    port: 465,
+    secure: true,
+
+    auth: {
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS,
+    },
+
+    tls: {
+      servername: "smtp.gmail.com",
+    },
+  });
+};
 
 const sendFrenchLanguageOtp = async ({ email, otp }) => {
+  const transporter = await createTransporter();
+
   await transporter.sendMail({
     from: `"Internshala" <${process.env.SMTP_USER}>`,
     to: email,
+
     subject: "French language verification code",
 
     text: `Your verification code is ${otp}. It expires in 10 minutes.`,
@@ -35,9 +50,7 @@ const sendFrenchLanguageOtp = async ({ email, otp }) => {
 
         <h1>${otp}</h1>
 
-        <p>
-          This code expires in 10 minutes.
-        </p>
+        <p>This code expires in 10 minutes.</p>
 
         <p>
           If you did not request this change,
