@@ -22,6 +22,7 @@
     "mongodb": "^7.6.0",
     "mongoose": "^9.10.1",
     "nodemon": "^3.1.14",
-    "resend": "^6.28.1"
+    "resend": "^6.28.1",
+    "ua-parser-js": "^2.0.10"
   }
 }

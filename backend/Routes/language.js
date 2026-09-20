@@ -2,6 +2,8 @@ const express = require("express");
 const crypto = require("node:crypto");
 
 const LanguageOtp = require("../Model/LanguageOtp");
+const createLanguageAudit = require("../utils/createLanguageAudit");
+const LanguageHistory = require("../Model/LanguageHistory");
 
 const { sendFrenchLanguageOtp } = require("../services/emailService");
 
@@ -40,26 +42,38 @@ router.put("/", verifyFirebaseToken, async (req, res) => {
       });
     }
 
-    const user = await User.findOneAndUpdate(
-      {
-        firebaseUid: req.firebaseUser.uid,
-      },
-
-      {
-        $set: {
-          preferredLanguage: language,
-        },
-      },
-
-      {
-        new: true,
-      },
-    );
+    const user = await User.findOne({
+      firebaseUid: req.firebaseUser.uid,
+    });
 
     if (!user) {
       return res.status(404).json({
         error: "USER_NOT_FOUND",
       });
+    }
+
+    const previousLanguage = user.preferredLanguage;
+
+    if (previousLanguage === language) {
+      return res.status(200).json({
+        preferredLanguage: user.preferredLanguage,
+      });
+    }
+
+    user.preferredLanguage = language;
+
+    await user.save();
+
+    try {
+      await createLanguageAudit({
+        req,
+        user,
+        previousLanguage,
+        selectedLanguage: language,
+        verificationMethod: "standard",
+      });
+    } catch (auditError) {
+      console.error("Language audit failed:", auditError);
     }
 
     return res.status(200).json({
@@ -83,6 +97,12 @@ router.post("/french/request-otp", verifyFirebaseToken, async (req, res) => {
     if (!user) {
       return res.status(404).json({
         error: "USER_NOT_FOUND",
+      });
+    }
+
+    if (user.preferredLanguage === "fr") {
+      return res.status(400).json({
+        error: "ALREADY_USING_FRENCH",
       });
     }
 
@@ -200,6 +220,12 @@ router.post("/french/verify-otp", verifyFirebaseToken, async (req, res) => {
       });
     }
 
+    if (user.preferredLanguage === "fr") {
+      return res.status(400).json({
+        error: "ALREADY_USING_FRENCH",
+      });
+    }
+
     const otpRecord = await LanguageOtp.findOne({
       user: user._id,
     });
@@ -255,10 +281,24 @@ router.post("/french/verify-otp", verifyFirebaseToken, async (req, res) => {
       });
     }
 
+    const previousLanguage = user.preferredLanguage;
+
     user.preferredLanguage = "fr";
+
     await user.save();
 
-    // OTP must never be reusable.
+    try {
+      await createLanguageAudit({
+        req,
+        user,
+        previousLanguage,
+        selectedLanguage: "fr",
+        verificationMethod: "email-otp",
+      });
+    } catch (auditError) {
+      console.error("Language audit failed:", auditError);
+    }
+
     await LanguageOtp.deleteOne({
       _id: otpRecord._id,
     });
@@ -272,6 +312,38 @@ router.post("/french/verify-otp", verifyFirebaseToken, async (req, res) => {
 
     return res.status(500).json({
       error: "OTP_VERIFICATION_FAILED",
+    });
+  }
+});
+
+router.get("/history", verifyFirebaseToken, async (req, res) => {
+  try {
+    const user = await User.findOne({
+      firebaseUid: req.firebaseUser.uid,
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        error: "USER_NOT_FOUND",
+      });
+    }
+
+    const history = await LanguageHistory.find({
+      user: user._id,
+    })
+      .sort({
+        changedAt: -1,
+      })
+      .limit(100);
+
+    return res.status(200).json({
+      history,
+    });
+  } catch (error) {
+    console.error("Language history failed:", error);
+
+    return res.status(500).json({
+      error: "LANGUAGE_HISTORY_FAILED",
     });
   }
 });
