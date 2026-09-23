@@ -163,6 +163,7 @@ router.post("/french/request-otp", verifyFirebaseToken, async (req, res) => {
     await sendFrenchLanguageOtp({
       email: user.email,
       otp,
+      language: user.preferredLanguage,
     });
 
     await LanguageOtp.findOneAndUpdate(

@@ -10,44 +10,20 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import React, { useEffect, useState } from "react";
-
-// const internshipData = [
-//   {
-//     _id: "1",
-//     title: "Frontend Developer Intern",
-//     company: "TechCorp",
-//     StartDate: "April 2025",
-//     Duration: "3 Months",
-//     stipend: "$500/month",
-//     category: "Web Development",
-//     location: "New York",
-//   },
-//   {
-//     _id: "2",
-//     title: "Data Science Intern",
-//     company: "DataTech",
-//     StartDate: "May 2025",
-//     Duration: "6 Months",
-//     stipend: "$800/month",
-//     category: "Data Science",
-//     location: "San Francisco",
-//   },
-//   {
-//     _id: "3",
-//     title: "Marketing Intern",
-//     company: "MarketPro",
-//     StartDate: "June 2025",
-//     Duration: "4 Months",
-//     stipend: "$400/month",
-//     category: "Marketing",
-//     location: "Los Angeles",
-//   },
-// ];
+import { useTranslation } from "react-i18next";
+import { getLocalizedContent } from "@/utils/getLocalizedContent";
 
 function index() {
+  const { t, i18n } = useTranslation();
+
+  const currentLanguage = i18n.resolvedLanguage || i18n.language;
+
   const [filteredInternships, setFilteredInternships] = useState<any>([]);
+
   const [internshipData, setInternshipData] = useState<any>([]);
+
   const [isFiltervisible, setisFiltervisible] = useState(false);
+
   const [filter, setfilters] = useState({
     category: "",
     location: "",
@@ -62,30 +38,39 @@ function index() {
         const res = await axios.get(
           "https://internshala-78tb.onrender.com/api/internship",
         );
+
         setInternshipData(res.data);
-        setFilteredInternships(res.data);
       } catch (error) {
         console.log(error);
       }
     };
+
     fetchdata();
   }, []);
 
   useEffect(() => {
-    const filtered = internshipData.filter((internship: any) => {
+    const localizedInternships = internshipData.map((internship: any) =>
+      getLocalizedContent(internship, currentLanguage),
+    );
+
+    const filtered = localizedInternships.filter((internship: any) => {
       const matchesCategory = internship.category
-        .toLowerCase()
+        ?.toLowerCase()
         .includes(filter.category.toLowerCase());
+
       const matchesLocation = internship.location
-        .toLowerCase()
+        ?.toLowerCase()
         .includes(filter.location.toLowerCase());
+
       return matchesCategory && matchesLocation;
     });
+
     setFilteredInternships(filtered);
-  }, [filter, internshipData]);
+  }, [filter, internshipData, currentLanguage]);
 
   const handleFilterChange = (e: any) => {
     const { name, value, type, checked } = e.target;
+
     setfilters((prev) => ({
       ...prev,
       [name]: type === "checkbox" ? checked : value,
@@ -110,42 +95,51 @@ function index() {
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center space-x-2">
                 <Filter className="h-5 w-5 text-blue-600" />
-                <span className="font-medium text-black">Filters</span>
+
+                <span className="font-medium text-black">
+                  {t("filters.filters")}
+                </span>
               </div>
+
               <button
                 onClick={clearFilters}
                 className="text-sm text-blue-600 hover:text-blue-700"
               >
-                Clear all
+                {t("filters.clearAll")}
               </button>
             </div>
+
             <div className="space-y-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Category
+                  {t("common.category")}
                 </label>
+
                 <input
                   type="text"
                   name="category"
                   value={filter.category}
                   onChange={handleFilterChange}
                   className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-700"
-                  placeholder="e.g. Marketing Intern"
+                  placeholder={t("filters.searchRole")}
                 />
               </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Location
+                  {t("common.location")}
                 </label>
+
                 <input
                   type="text"
                   name="location"
                   value={filter.location}
                   onChange={handleFilterChange}
                   className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-700"
-                  placeholder="e.g. Mumbai"
+                  placeholder={t("filters.searchLocation")}
                 />
               </div>
+
               <div className="space-y-3">
                 <label className="flex items-center space-x-2">
                   <input
@@ -153,10 +147,14 @@ function index() {
                     name="workFromHome"
                     checked={filter.workFromHome}
                     onChange={handleFilterChange}
-                    className="h-4 w-4 text-blue-600 rounded "
+                    className="h-4 w-4 text-blue-600 rounded"
                   />
-                  <span className="text-gray-700">Work from home</span>
+
+                  <span className="text-gray-700">
+                    {t("filters.workFromHome")}
+                  </span>
                 </label>
+
                 <label className="flex items-center space-x-2">
                   <input
                     type="checkbox"
@@ -165,13 +163,16 @@ function index() {
                     onChange={handleFilterChange}
                     className="h-4 w-4 text-blue-600 rounded"
                   />
-                  <span className="text-gray-700">Part-time</span>
+
+                  <span className="text-gray-700">{t("filters.partTime")}</span>
                 </label>
               </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Monthly Stipend (₹)
+                  {t("filters.monthlyStipend")}
                 </label>
+
                 <input
                   type="range"
                   name="stipend"
@@ -181,6 +182,7 @@ function index() {
                   onChange={handleFilterChange}
                   className="w-full"
                 />
+
                 <div className="flex justify-between text-sm text-gray-600">
                   <span>₹0</span>
                   <span>₹50K</span>
@@ -189,6 +191,7 @@ function index() {
               </div>
             </div>
           </div>
+
           <div className="flex-1">
             <div className="md:hidden mb-4">
               <button
@@ -196,14 +199,19 @@ function index() {
                 className="w-full flex items-center justify-center space-x-2 bg-white p-3 rounded-lg shadow-sm text-black"
               >
                 <Filter className="h-5 w-5" />
-                <span> Show Filters</span>
+
+                <span>{t("filters.showFilters")}</span>
               </button>
             </div>
+
             <div className="bg-white p-4 rounded-lg shadow-sm mb-4">
               <p className="text-center font-medium text-black">
-                {filteredInternships.length} Internships found
+                {t("internship.resultsFound", {
+                  count: filteredInternships.length,
+                })}
               </p>
             </div>
+
             <div className="space-y-4">
               {filteredInternships.map((internship: any) => (
                 <div
@@ -212,51 +220,76 @@ function index() {
                 >
                   <div className="flex items-center space-x-2 text-blue-600 mb-4">
                     <ArrowUpRight className="h-5 w-5" />
-                    <span className="font-medium">Actively Hiring</span>
+
+                    <span className="font-medium">
+                      {t("internship.activelyHiring")}
+                    </span>
                   </div>
+
                   <h2 className="text-xl font-bold text-gray-900 mb-2">
                     {internship.title}
                   </h2>
+
                   <p className="text-gray-600 mb-4">{internship.company}</p>
 
                   <div className="grid grid-cols-3 gap-4 mb-6">
                     <div className="flex items-center space-x-2 text-gray-600">
                       <PlayCircle className="h-5 w-5" />
+
                       <div>
-                        <p className="text-sm font-medium">Start Date</p>
+                        <p className="text-sm font-medium">
+                          {t("internship.startDate")}
+                        </p>
+
                         <p className="text-sm">{internship.startDate}</p>
                       </div>
                     </div>
+
                     <div className="flex items-center space-x-2 text-gray-600">
                       <MapPin className="h-5 w-5" />
+
                       <div>
-                        <p className="text-sm font-medium">Location</p>
+                        <p className="text-sm font-medium">
+                          {t("internship.location")}
+                        </p>
+
                         <p className="text-sm">{internship.location}</p>
                       </div>
                     </div>
+
                     <div className="flex items-center space-x-2 text-gray-600">
                       <DollarSign className="h-5 w-5" />
+
                       <div>
-                        <p className="text-sm font-medium">Stipend</p>
+                        <p className="text-sm font-medium">
+                          {t("internship.stipend")}
+                        </p>
+
                         <p className="text-sm">{internship.stipend}</p>
                       </div>
                     </div>
                   </div>
+
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
                       <span className="px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-sm">
-                        Internship
+                        {t("internship.label")}
                       </span>
+
                       <div className="flex items-center space-x-1 text-green-600">
                         <Clock className="h-4 w-4" />
-                        <span className="text-sm">Posted recently</span>
+
+                        <span className="text-sm">
+                          {t("internship.postedRecently")}
+                        </span>
                       </div>
                     </div>
+
                     <Link
                       href={`/detailinternship/${internship._id}`}
                       className="text-blue-600 hover:text-blue-700 font-medium"
                     >
-                      View Details
+                      {t("common.viewDetails")}
                     </Link>
                   </div>
                 </div>
@@ -265,11 +298,13 @@ function index() {
           </div>
         </div>
       </div>
+
       {isFiltervisible && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 md:hidden">
           <div className="bg-white h-full w-full max-w-sm ml-auto p-6 overflow-y-auto">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-lg font-bold">Filters</h2>
+              <h2 className="text-lg font-bold">{t("filters.filters")}</h2>
+
               <button
                 onClick={() => setisFiltervisible(false)}
                 className="text-gray-400 hover:text-gray-600"
@@ -277,33 +312,38 @@ function index() {
                 <X className="h-6 w-6" />
               </button>
             </div>
+
             <div className="space-y-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Category
+                  {t("common.category")}
                 </label>
+
                 <input
                   type="text"
                   name="category"
                   value={filter.category}
                   onChange={handleFilterChange}
                   className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-700"
-                  placeholder="e.g. Marketing Intern"
+                  placeholder={t("filters.searchRole")}
                 />
               </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Location
+                  {t("common.location")}
                 </label>
+
                 <input
                   type="text"
                   name="location"
                   value={filter.location}
                   onChange={handleFilterChange}
                   className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-700"
-                  placeholder="e.g. Mumbai"
+                  placeholder={t("filters.searchLocation")}
                 />
               </div>
+
               <div className="space-y-3">
                 <label className="flex items-center space-x-2">
                   <input
@@ -311,10 +351,14 @@ function index() {
                     name="workFromHome"
                     checked={filter.workFromHome}
                     onChange={handleFilterChange}
-                    className="h-4 w-4 text-blue-600 rounded "
+                    className="h-4 w-4 text-blue-600 rounded"
                   />
-                  <span className="text-gray-700">Work from home</span>
+
+                  <span className="text-gray-700">
+                    {t("filters.workFromHome")}
+                  </span>
                 </label>
+
                 <label className="flex items-center space-x-2">
                   <input
                     type="checkbox"
@@ -323,13 +367,16 @@ function index() {
                     onChange={handleFilterChange}
                     className="h-4 w-4 text-blue-600 rounded"
                   />
-                  <span className="text-gray-700">Part-time</span>
+
+                  <span className="text-gray-700">{t("filters.partTime")}</span>
                 </label>
               </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Monthly Stipend (₹)
+                  {t("filters.monthlyStipend")}
                 </label>
+
                 <input
                   type="range"
                   name="stipend"
@@ -339,6 +386,7 @@ function index() {
                   onChange={handleFilterChange}
                   className="w-full"
                 />
+
                 <div className="flex justify-between text-sm text-gray-600">
                   <span>₹0</span>
                   <span>₹50K</span>

@@ -1,21 +1,29 @@
 import axios from "axios";
 import { Building2, Calendar, FileText, Loader2, User } from "lucide-react";
 import { useRouter } from "next/router";
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 const index = () => {
+  const { t, i18n } = useTranslation();
+
   const router = useRouter();
   const { id } = router.query;
+
   const [loading, setloading] = useState(false);
   const [data, setdata] = useState<any>([]);
+
   useEffect(() => {
     const fetchdata = async () => {
       try {
         setloading(true);
+
         const res = await axios.get(
           `https://internshala-78tb.onrender.com/api/application/${id}`,
         );
+
         console.log(res.data);
+
         setdata(res.data);
       } catch (error) {
         console.log(error);
@@ -23,20 +31,36 @@ const index = () => {
         setloading(false);
       }
     };
+
     if (id) {
       fetchdata();
     }
   }, [id]);
+
+  const translateStatus = (status: string) => {
+    const normalizedStatus = status?.toLowerCase();
+
+    const supportedStatuses = ["pending", "approved", "accepted", "rejected"];
+
+    if (supportedStatuses.includes(normalizedStatus)) {
+      return t(`status.${normalizedStatus}`);
+    }
+
+    return status;
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+
         <span className="ml-2 text-gray-600">
-          Loading application details...
+          {t("application.loadingDetails")}
         </span>
       </div>
     );
   }
+
   return (
     <div className="min-h-screen bg-gray-50 py-12">
       <section key={data._id} className="max-w-6xl mx-auto px-4">
@@ -44,10 +68,11 @@ const index = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <div className="relative">
               <img
-                alt="Applicant photo"
+                alt={t("application.applicantPhoto")}
                 className="w-full h-full object-cover"
                 src={data?.user?.photo}
               />
+
               {data.status && (
                 <div
                   className={`absolute top-4 right-4 px-4 py-2 rounded-full ${
@@ -59,7 +84,7 @@ const index = () => {
                   }`}
                 >
                   <span className="font-semibold capitalize">
-                    {data.status}
+                    {translateStatus(data.status)}
                   </span>
                 </div>
               )}
@@ -69,8 +94,12 @@ const index = () => {
               <div className="mb-8">
                 <div className="flex items-center mb-6">
                   <Building2 className="w-5 h-5 text-blue-600 mr-2" />
-                  <h2 className="text-sm font-medium text-gray-500">Company</h2>
+
+                  <h2 className="text-sm font-medium text-gray-500">
+                    {t("common.company")}
+                  </h2>
                 </div>
+
                 <h1 className="text-2xl font-bold text-gray-900 mb-4">
                   {data.company}
                 </h1>
@@ -79,10 +108,12 @@ const index = () => {
               <div className="mb-8">
                 <div className="flex items-center mb-4">
                   <FileText className="w-5 h-5 text-blue-600 mr-2" />
+
                   <h2 className="text-sm font-medium text-gray-500">
-                    Cover Letter
+                    {t("application.coverLetter")}
                   </h2>
                 </div>
+
                 <p className="text-gray-600 leading-relaxed">
                   {data.coverLetter}
                 </p>
@@ -92,26 +123,34 @@ const index = () => {
                 <div>
                   <div className="flex items-center mb-2">
                     <Calendar className="w-5 h-5 text-blue-600 mr-2" />
+
                     <span className="text-sm font-medium text-gray-500">
-                      Application Date
+                      {t("application.appliedDate")}
                     </span>
                   </div>
+
                   <p className="text-gray-900 font-semibold">
-                    {new Date(data.createdAt).toLocaleDateString("en-US", {
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                    })}
+                    {data.createdAt &&
+                      new Date(data.createdAt).toLocaleDateString(
+                        i18n.resolvedLanguage || i18n.language,
+                        {
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
+                        },
+                      )}
                   </p>
                 </div>
 
                 <div>
                   <div className="flex items-center mb-2">
                     <User className="w-5 h-5 text-blue-600 mr-2" />
+
                     <span className="text-sm font-medium text-gray-500">
-                      Applied By
+                      {t("application.appliedBy")}
                     </span>
                   </div>
+
                   <p className="text-gray-900 font-semibold">
                     {data.user?.name}
                   </p>

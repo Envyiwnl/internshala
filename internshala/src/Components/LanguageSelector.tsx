@@ -42,8 +42,14 @@ export default function LanguageSelector() {
         if (!response.ok) {
           if (data.error === "OTP_RESEND_TOO_SOON") {
             toast.info(
-              `Please wait ${data.retryAfter} seconds before requesting another OTP.`,
+              t("language.resendOtpIn", {
+                seconds: data.retryAfter,
+              }),
             );
+            return;
+          }
+          if (data.error === "OTP_REQUEST_LIMIT_REACHED") {
+            toast.error(t("language.otpRequestLimit"));
             return;
           }
 

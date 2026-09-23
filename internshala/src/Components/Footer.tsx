@@ -1,13 +1,16 @@
 import { FaFacebookF, FaInstagram } from "react-icons/fa";
 import { FaXTwitter } from "react-icons/fa6";
+import { useTranslation } from "react-i18next";
 
 export default function Footer() {
+  const { t } = useTranslation();
+
   return (
     <footer className="bg-gray-800 text-white py-12">
       <div className="container mx-auto px-6">
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
           <FooterSection
-            title="Internship by places"
+            title={t("footer.internshipByPlaces")}
             items={[
               "New York",
               "Los Angeles",
@@ -17,38 +20,41 @@ export default function Footer() {
               "Seattle",
             ]}
           />
+
           <FooterSection
-            title="Internship by stream"
+            title={t("footer.internshipByStream")}
             items={[
-              "About us",
-              "Careers",
-              "Press",
-              "News",
-              "Media kit",
-              "Contact",
+              t("footer.aboutUs"),
+              t("footer.careers"),
+              t("footer.press"),
+              t("footer.news"),
+              t("footer.mediaKit"),
+              t("footer.contact"),
             ]}
           />
+
           <FooterSection
-            title="Job Places"
+            title={t("footer.jobPlaces")}
             items={[
-              "Blog",
-              "Newsletter",
-              "Events",
-              "Help center",
-              "Tutorials",
-              "Supports",
+              t("footer.blog"),
+              t("footer.newsletter"),
+              t("footer.events"),
+              t("footer.helpCenter"),
+              t("footer.tutorials"),
+              t("footer.support"),
             ]}
             links
           />
+
           <FooterSection
-            title="Jobs by streams"
+            title={t("footer.jobsByStreams")}
             items={[
-              "Startups",
-              "Enterprise",
-              "Government",
+              t("footer.startups"),
+              t("footer.enterprise"),
+              t("footer.government"),
               "SaaS",
-              "Marketplaces",
-              "Ecommerce",
+              t("footer.marketplaces"),
+              t("footer.ecommerce"),
             ]}
             links
           />
@@ -58,40 +64,52 @@ export default function Footer() {
 
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
           <FooterSection
-            title="About us"
-            items={["Startups", "Enterprise"]}
+            title={t("footer.aboutUs")}
+            items={[t("footer.startups"), t("footer.enterprise")]}
             links
           />
+
           <FooterSection
-            title="Team diary"
-            items={["Startups", "Enterprise"]}
+            title={t("footer.teamDiary")}
+            items={[t("footer.startups"), t("footer.enterprise")]}
             links
           />
+
           <FooterSection
-            title="Terms and conditions"
-            items={["Startups", "Enterprise"]}
+            title={t("footer.terms")}
+            items={[t("footer.startups"), t("footer.enterprise")]}
             links
           />
-          <FooterSection title="Sitemap" items={["Startups"]} links />
+
+          <FooterSection
+            title={t("footer.sitemap")}
+            items={[t("footer.startups")]}
+            links
+          />
         </div>
 
         <div className="mt-10 flex flex-col sm:flex-row justify-between items-center">
           <p className="flex items-center gap-2 border border-white px-4 py-2 rounded-lg cursor-pointer hover:bg-gray-700">
-            <i className="bi bi-google-play"></i> Get Android App
+            <i className="bi bi-google-play"></i>
+            {t("footer.getAndroidApp")}
           </p>
+
           <div className="flex space-x-4 mt-4 sm:mt-0">
             <a href="https://facebook.com" aria-label="Facebook">
               <FaFacebookF className="w-5 h-5 hover:text-blue-400 cursor-pointer" />
             </a>
+
             <a href="https://twitter.com" aria-label="X (formerly Twitter)">
               <FaXTwitter className="w-5 h-5 hover:text-white cursor-pointer" />
             </a>
+
             <a href="https://instagram.com" aria-label="Instagram">
               <FaInstagram className="w-5 h-5 hover:text-pink-400 cursor-pointer" />
             </a>
           </div>
+
           <p className="mt-4 sm:mt-0 text-sm text-gray-400">
-            © Copyright 2025. All Rights Reserved.
+            {t("footer.copyright")}
           </p>
         </div>
       </div>
@@ -103,6 +121,7 @@ function FooterSection({ title, items, links }: any) {
   return (
     <div>
       <h3 className="text-sm font-bold text-gray-300">{title}</h3>
+
       <div className="flex flex-col items-start mt-4 space-y-3">
         {items.map((item: any, index: any) =>
           links ? (

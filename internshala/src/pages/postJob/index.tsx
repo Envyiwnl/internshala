@@ -11,9 +11,12 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/router";
 import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "react-toastify";
 
 const index = () => {
+  const { t } = useTranslation();
+
   const [formData, setformadata] = useState({
     title: "",
     company: "",
@@ -24,39 +27,58 @@ const index = () => {
     whoCanApply: "",
     perks: "",
     numberOfOpening: "",
+    Experience: "",
     CTC: "",
+    salary: "",
+    workFromHome: false,
+    partTime: false,
     StartDate: "",
     AdditionalInfo: "",
   });
+
   const [isloading, setisloading] = useState(false);
   const router = useRouter();
 
   const handleChange = (e: any) => {
-    const { name, value } = e.target;
+    const { name, value, type, checked } = e.target;
+
     setformadata((prev) => ({
       ...prev,
-      [name]: value,
+      [name]: type === "checkbox" ? checked : value,
     }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const hasemptyfields = Object.values(formData).some((val) => !val.trim());
+
+    const hasemptyfields = Object.entries(formData).some(([key, value]) => {
+      if (key === "workFromHome" || key === "partTime") {
+        return false;
+      }
+
+      return typeof value === "string" && !value.trim();
+    });
+
     if (hasemptyfields) {
-      toast.error("Please fill in adll detials");
+      toast.error(t("form.requiredFields"));
       return;
     }
+
     try {
       setisloading(true);
-      const res = await axios.post(
-        `https://internshala-78tb.onrender.com/api/job`,
+
+      await axios.post(
+        "https://internshala-78tb.onrender.com/api/job",
         formData,
       );
-      toast.success("Job posted successfuly");
+
+      toast.success(t("form.postedSuccessfully"));
+
       router.push("/adminpanel");
     } catch (error) {
       console.log(error);
-      toast.error("Something went wrong, while posting job");
+
+      toast.error(t("form.postFailed"));
     } finally {
       setisloading(false);
     }
@@ -67,10 +89,11 @@ const index = () => {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bg-white rounded-lg shadow-sm p-6">
           <div className="mb-8">
-            <h1 className="text-2xl font-bold text-gray-900">Post New Job</h1>
-            <p className="mt-2 text-sm text-gray-600">
-              Create a new Job opportunity
-            </p>
+            <h1 className="text-2xl font-bold text-gray-900">
+              {t("form.postNewJob")}
+            </h1>
+
+            <p className="mt-2 text-sm text-gray-600">{t("form.createJob")}</p>
           </div>
 
           <form className="space-y-6" onSubmit={handleSubmit}>
@@ -80,16 +103,17 @@ const index = () => {
                   <label className="block text-sm font-medium text-gray-700">
                     <div className="flex items-center mb-1">
                       <Briefcase className="h-4 w-4 mr-1" />
-                      Title*
+                      {t("form.title")}*
                     </div>
                   </label>
+
                   <input
                     type="text"
                     name="title"
                     value={formData.title}
                     onChange={handleChange}
-                    className="text-black  mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                    placeholder="e.g. Frontend Developer Intern"
+                    className="text-black mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                    placeholder={t("form.jobTitlePlaceholder")}
                   />
                 </div>
 
@@ -97,16 +121,17 @@ const index = () => {
                   <label className="block text-sm font-medium text-gray-700">
                     <div className="flex items-center mb-1">
                       <Building2 className="h-4 w-4 mr-1" />
-                      Company Name*
+                      {t("form.companyName")}*
                     </div>
                   </label>
+
                   <input
                     type="text"
                     name="company"
                     value={formData.company}
                     onChange={handleChange}
                     className="text-black mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                    placeholder="e.g. Tech Solutions Inc"
+                    placeholder={t("form.companyPlaceholder")}
                   />
                 </div>
               </div>
@@ -116,16 +141,17 @@ const index = () => {
                   <label className="block text-sm font-medium text-gray-700">
                     <div className="flex items-center mb-1">
                       <MapPin className="h-4 w-4 mr-1" />
-                      Location*
+                      {t("form.location")}*
                     </div>
                   </label>
+
                   <input
                     type="text"
                     name="location"
                     value={formData.location}
                     onChange={handleChange}
                     className="text-black mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                    placeholder="e.g. Mumbai, India"
+                    placeholder={t("form.locationPlaceholder")}
                   />
                 </div>
 
@@ -133,16 +159,17 @@ const index = () => {
                   <label className="block text-sm font-medium text-gray-700">
                     <div className="flex items-center mb-1">
                       <Tags className="h-4 w-4 mr-1" />
-                      Category*
+                      {t("form.category")}*
                     </div>
                   </label>
+
                   <input
                     type="text"
                     name="category"
                     value={formData.category}
                     onChange={handleChange}
-                    className=" text-black mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                    placeholder="e.g. Software Development"
+                    className="text-black mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                    placeholder={t("form.categoryPlaceholder")}
                   />
                 </div>
               </div>
@@ -153,16 +180,17 @@ const index = () => {
                 <label className="block text-sm font-medium text-gray-700">
                   <div className="flex items-center mb-1">
                     <Info className="h-4 w-4 mr-1" />
-                    About Company*
+                    {t("form.aboutCompany")}*
                   </div>
                 </label>
+
                 <textarea
                   name="aboutCompany"
                   value={formData.aboutCompany}
                   onChange={handleChange}
                   rows={4}
                   className="text-black mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                  placeholder="Describe your company..."
+                  placeholder={t("form.companyDescriptionPlaceholder")}
                 />
               </div>
 
@@ -170,16 +198,17 @@ const index = () => {
                 <label className="block text-sm font-medium text-gray-700">
                   <div className="flex items-center mb-1">
                     <Briefcase className="h-4 w-4 mr-1" />
-                    About Job*
+                    {t("form.aboutJob")}*
                   </div>
                 </label>
+
                 <textarea
                   name="aboutJob"
                   value={formData.aboutJob}
                   onChange={handleChange}
                   rows={4}
                   className="text-black mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                  placeholder="Describe the internship role..."
+                  placeholder={t("form.jobDescriptionPlaceholder")}
                 />
               </div>
             </div>
@@ -189,16 +218,17 @@ const index = () => {
                 <label className="block text-sm font-medium text-gray-700">
                   <div className="flex items-center mb-1">
                     <Users className="h-4 w-4 mr-1" />
-                    Who Can Apply*
+                    {t("form.whoCanApply")}*
                   </div>
                 </label>
+
                 <textarea
                   name="whoCanApply"
                   value={formData.whoCanApply}
                   onChange={handleChange}
                   rows={3}
                   className="text-black mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                  placeholder="Eligibility criteria..."
+                  placeholder={t("form.eligibilityPlaceholder")}
                 />
               </div>
 
@@ -206,16 +236,17 @@ const index = () => {
                 <label className="block text-sm font-medium text-gray-700">
                   <div className="flex items-center mb-1">
                     <Info className="h-4 w-4 mr-1" />
-                    Perks*
+                    {t("form.perks")}*
                   </div>
                 </label>
+
                 <textarea
                   name="perks"
                   value={formData.perks}
                   onChange={handleChange}
                   rows={3}
                   className="text-black mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                  placeholder="List the perks..."
+                  placeholder={t("form.perksPlaceholder")}
                 />
               </div>
             </div>
@@ -225,9 +256,10 @@ const index = () => {
                 <label className="block text-sm font-medium text-gray-700">
                   <div className="flex items-center mb-1">
                     <Users className="h-4 w-4 mr-1" />
-                    Number of Openings*
+                    {t("form.numberOfOpenings")}*
                   </div>
                 </label>
+
                 <input
                   type="number"
                   name="numberOfOpening"
@@ -235,7 +267,24 @@ const index = () => {
                   onChange={handleChange}
                   min="1"
                   className="text-black mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                  placeholder="e.g. 5"
+                  placeholder={t("form.openingsPlaceholder")}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  <div className="flex items-center mb-1">
+                    <Briefcase className="h-4 w-4 mr-1" />
+                    {t("form.experience")}*
+                  </div>
+                </label>
+
+                <input
+                  type="text"
+                  name="Experience"
+                  value={formData.Experience}
+                  onChange={handleChange}
+                  className="text-black mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                  placeholder={t("form.experiencePlaceholder")}
                 />
               </div>
 
@@ -243,26 +292,74 @@ const index = () => {
                 <label className="block text-sm font-medium text-gray-700">
                   <div className="flex items-center mb-1">
                     <DollarSign className="h-4 w-4 mr-1" />
-                    CTC*
+                    {t("form.ctc")}*
                   </div>
                 </label>
+
                 <input
                   type="text"
                   name="CTC"
                   value={formData.CTC}
                   onChange={handleChange}
                   className="text-black mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                  placeholder="e.g. ₹10 LPA"
+                  placeholder={t("form.ctcPlaceholder")}
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700">
                   <div className="flex items-center mb-1">
-                    <Calendar className="h-4 w-4 mr-1" />
-                    Start Date*
+                    <DollarSign className="h-4 w-4 mr-1" />
+                    {t("form.salary")}*
                   </div>
                 </label>
+
+                <input
+                  type="number"
+                  name="salary"
+                  value={formData.salary}
+                  onChange={handleChange}
+                  min="0"
+                  className="text-black mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                  placeholder={t("form.salaryPlaceholder")}
+                />
+              </div>
+              <div className="space-y-3">
+                <label className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    name="workFromHome"
+                    checked={formData.workFromHome}
+                    onChange={handleChange}
+                    className="h-4 w-4 text-blue-600 rounded"
+                  />
+
+                  <span className="text-gray-700">
+                    {t("filters.workFromHome")}
+                  </span>
+                </label>
+
+                <label className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    name="partTime"
+                    checked={formData.partTime}
+                    onChange={handleChange}
+                    className="h-4 w-4 text-blue-600 rounded"
+                  />
+
+                  <span className="text-gray-700">{t("filters.partTime")}</span>
+                </label>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  <div className="flex items-center mb-1">
+                    <Calendar className="h-4 w-4 mr-1" />
+                    {t("form.startDate")}*
+                  </div>
+                </label>
+
                 <input
                   type="date"
                   name="StartDate"
@@ -276,16 +373,17 @@ const index = () => {
                 <label className="block text-sm font-medium text-gray-700">
                   <div className="flex items-center mb-1">
                     <Info className="h-4 w-4 mr-1" />
-                    Additional Information*
+                    {t("form.additionalInformation")}*
                   </div>
                 </label>
+
                 <textarea
                   name="AdditionalInfo"
                   value={formData.AdditionalInfo}
                   onChange={handleChange}
                   rows={3}
                   className="text-black mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                  placeholder="Any additional details..."
+                  placeholder={t("form.additionalPlaceholder")}
                 />
               </div>
             </div>
@@ -298,11 +396,12 @@ const index = () => {
               >
                 {isloading ? (
                   <div className="flex items-center">
-                    <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white mr-2"></div>
-                    Posting Job...
+                    <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white mr-2" />
+
+                    {t("form.postingJob")}
                   </div>
                 ) : (
-                  "Post Job"
+                  t("form.postJob")
                 )}
               </button>
             </div>
