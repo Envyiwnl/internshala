@@ -220,7 +220,9 @@
     "experience": "经验",
     "experiencePlaceholder": "例如：2 年",
     "duration": "时长",
-    "durationPlaceholder": "例如：3 个月"
+    "durationPlaceholder": "例如：3 个月",
+    "salary": "年薪（₹，单位：十万）",
+    "salaryPlaceholder": "例如：8"
   },
 
   "profile": {

@@ -221,7 +221,9 @@
     "experience": "अनुभव",
     "experiencePlaceholder": "जैसे 2 वर्ष",
     "duration": "अवधि",
-    "durationPlaceholder": "जैसे 3 महीने"
+    "durationPlaceholder": "जैसे 3 महीने",
+    "salary": "वार्षिक वेतन (₹ लाख में)",
+    "salaryPlaceholder": "जैसे 8"
   },
 
   "profile": {

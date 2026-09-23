@@ -220,7 +220,9 @@
     "experience": "Experiencia",
     "experiencePlaceholder": "p. ej., 2 años",
     "duration": "Duración",
-    "durationPlaceholder": "p. ej., 3 meses"
+    "durationPlaceholder": "p. ej., 3 meses",
+    "salary": "Salario anual (₹ en lakhs)",
+    "salaryPlaceholder": "p. ej., 8"
   },
 
   "admin": {
