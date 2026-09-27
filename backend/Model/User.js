@@ -34,6 +34,24 @@ const UserSchema = new mongoose.Schema(
       enum: ["en", "es", "hi", "pt", "zh", "fr"],
       default: "en",
     },
+
+    isPremium: {
+      type: Boolean,
+      default: false,
+    },
+
+    resumes: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Resume",
+      },
+    ],
+
+    defaultResume: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Resume",
+      default: null,
+    },
   },
   {
     timestamps: true,

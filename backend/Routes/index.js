@@ -6,10 +6,12 @@ const job = require("./job");
 const application = require("./application");
 const user = require("./user");
 const language = require("./language");
+const resume = require("./resume");
 
 router.use("/admin", admin);
 router.use("/internship", intern);
 router.use("/job", job);
+router.use("/resume", resume);
 router.use("/application", application);
 router.use("/user", user);
 router.use("/language", language);
