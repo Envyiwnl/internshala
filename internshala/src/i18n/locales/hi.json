@@ -599,6 +599,10 @@
     "signupSuccess": "खाता सफलतापूर्वक बनाया गया।",
     "loginSecurityNote": "आपके लॉगिन क्रेडेंशियल Firebase Authentication द्वारा सुरक्षित रूप से संभाले जाते हैं।",
     "signupSecurityNote": "खाता बनाकर आप अपने लॉगिन क्रेडेंशियल सुरक्षित रखने के लिए सहमत होते हैं।",
+    "phoneNumber": "मोबाइल नंबर",
+    "optional": "(वैकल्पिक)",
+    "phonePlaceholder": "+919876543210",
+    "phoneHint": "यदि आप SMS द्वारा पासवर्ड रिकवरी का विकल्प चाहते हैं तो देश कोड सहित अपना मोबाइल नंबर जोड़ें।",
     "errors": {
       "loginRequired": "कृपया अपना ईमेल और पासवर्ड दर्ज करें।",
       "signupRequired": "कृपया सभी आवश्यक फ़ील्ड भरें।",
@@ -615,7 +619,9 @@
       "loginFailed": "लॉग इन नहीं हो सका। कृपया फिर प्रयास करें।",
       "signupFailed": "खाता नहीं बनाया जा सका। कृपया फिर प्रयास करें।",
       "profileSyncFailed": "आप लॉग इन हो गए, लेकिन आपकी प्रोफ़ाइल सिंक नहीं हो सकी। कृपया फिर प्रयास करें।",
-      "signupProfileSyncFailed": "आपका खाता बन गया, लेकिन प्रोफ़ाइल सिंक नहीं हो सकी। कृपया दोबारा लॉग इन करें।"
+      "signupProfileSyncFailed": "आपका खाता बन गया, लेकिन प्रोफ़ाइल सिंक नहीं हो सकी। कृपया दोबारा लॉग इन करें।",
+      "invalidPhone": "Introduce un número móvil válido con el código de país.",
+      "phoneAlreadyInUse": "Este número móvil ya está vinculado a otra cuenta."
     }
   },
   "forgotPassword": {

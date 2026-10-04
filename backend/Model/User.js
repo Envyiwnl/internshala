@@ -78,4 +78,15 @@ const UserSchema = new mongoose.Schema(
   },
 );
 
+UserSchema.index(
+  { phoneNumber: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      phoneNumber: { $gt: "" },
+    },
+    name: "unique_non_empty_phone_number",
+  },
+);
+
 module.exports = mongoose.model("User", UserSchema);

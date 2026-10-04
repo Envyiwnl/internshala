@@ -11,11 +11,12 @@ import {
   EyeOff,
   LockKeyhole,
   Mail,
+  Smartphone,
   UserRound,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { FormEvent, useEffect, useState } from "react";
+import { SubmitEvent, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "react-toastify";
 
@@ -32,6 +33,7 @@ type AuthMode = "login" | "signup";
 type FormData = {
   name: string;
   email: string;
+  phoneNumber: string;
   password: string;
   confirmPassword: string;
 };
@@ -39,12 +41,21 @@ type FormData = {
 const initialFormData: FormData = {
   name: "",
   email: "",
+  phoneNumber: "",
   password: "",
   confirmPassword: "",
 };
 
 const isValidEmail = (email: string) => {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+};
+
+const normalizePhoneNumber = (phoneNumber: string) => {
+  return phoneNumber.replace(/[\s()-]/g, "").trim();
+};
+
+const isValidPhoneNumber = (phoneNumber: string) => {
+  return /^\+[1-9]\d{7,14}$/.test(normalizePhoneNumber(phoneNumber));
 };
 
 export default function AuthPage() {
@@ -56,9 +67,11 @@ export default function AuthPage() {
   const [formData, setFormData] = useState<FormData>(initialFormData);
 
   const [showPassword, setShowPassword] = useState(false);
+
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const [loading, setLoading] = useState(false);
+
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -79,12 +92,7 @@ export default function AuthPage() {
     setShowPassword(false);
     setShowConfirmPassword(false);
 
-    setFormData((previous) => ({
-      ...previous,
-      name: "",
-      password: "",
-      confirmPassword: "",
-    }));
+    setFormData(initialFormData);
   };
 
   const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -108,8 +116,15 @@ export default function AuthPage() {
     return candidateLanguage === "fr" ? "en" : candidateLanguage;
   };
 
-  const syncMongoUser = async (firebaseUser: FirebaseUser) => {
+  const syncMongoUser = async (
+    firebaseUser: FirebaseUser,
+    phoneNumber?: string,
+  ) => {
     const idToken = await firebaseUser.getIdToken(true);
+
+    const normalizedPhone = phoneNumber
+      ? normalizePhoneNumber(phoneNumber)
+      : "";
 
     const response = await fetch(`${API_URL}/api/user/sync`, {
       method: "POST",
@@ -121,19 +136,37 @@ export default function AuthPage() {
 
       body: JSON.stringify({
         preferredLanguage: getInitialLanguage(),
+
+        ...(normalizedPhone
+          ? {
+              phoneNumber: normalizedPhone,
+            }
+          : {}),
       }),
     });
 
     const data = await response.json().catch(() => ({}));
 
     if (!response.ok) {
-      throw new Error(data.error || "USER_SYNC_FAILED");
+      const syncError = new Error(data.error || "USER_SYNC_FAILED");
+
+      (
+        syncError as Error & {
+          code?: string;
+        }
+      ).code = data.error || "USER_SYNC_FAILED";
+
+      throw syncError;
     }
 
     return data.user;
   };
 
   const getFirebaseErrorMessage = (authError: any, currentMode: AuthMode) => {
+    if (authError?.code === "PHONE_NUMBER_ALREADY_IN_USE") {
+      return t("authPage.errors.phoneAlreadyInUse");
+    }
+
     switch (authError?.code) {
       case "auth/invalid-email":
         return t("authPage.errors.invalidEmail");
@@ -173,11 +206,13 @@ export default function AuthPage() {
 
     if (!email || !formData.password) {
       setError(t("authPage.errors.loginRequired"));
+
       return false;
     }
 
     if (!isValidEmail(email)) {
       setError(t("authPage.errors.invalidEmail"));
+
       return false;
     }
 
@@ -186,25 +221,38 @@ export default function AuthPage() {
 
   const validateSignup = () => {
     const name = formData.name.trim();
+
     const email = formData.email.trim();
+
+    const phoneNumber = formData.phoneNumber.trim();
 
     if (!name || !email || !formData.password || !formData.confirmPassword) {
       setError(t("authPage.errors.signupRequired"));
+
       return false;
     }
 
     if (!isValidEmail(email)) {
       setError(t("authPage.errors.invalidEmail"));
+
+      return false;
+    }
+
+    if (phoneNumber && !isValidPhoneNumber(phoneNumber)) {
+      setError(t("authPage.errors.invalidPhone"));
+
       return false;
     }
 
     if (formData.password.length < 8) {
       setError(t("authPage.errors.passwordLength"));
+
       return false;
     }
 
     if (formData.password !== formData.confirmPassword) {
       setError(t("authPage.errors.passwordMismatch"));
+
       return false;
     }
 
@@ -236,6 +284,7 @@ export default function AuthPage() {
 
       if (mongoUser?.mustChangePassword) {
         await router.replace("/change-password");
+
         return;
       }
 
@@ -254,6 +303,7 @@ export default function AuthPage() {
         }
 
         setError(t("authPage.errors.profileSyncFailed"));
+
         return;
       }
 
@@ -288,12 +338,16 @@ export default function AuthPage() {
 
       await credential.user.reload();
 
-      const mongoUser = await syncMongoUser(credential.user);
+      const mongoUser = await syncMongoUser(
+        credential.user,
+        formData.phoneNumber,
+      );
 
       toast.success(t("authPage.signupSuccess"));
 
       if (mongoUser?.mustChangePassword) {
         await router.replace("/change-password");
+
         return;
       }
 
@@ -301,7 +355,28 @@ export default function AuthPage() {
     } catch (authError: any) {
       console.error("Email signup failed:", authError);
 
-      if (firebaseAccountCreated && authError?.message === "USER_SYNC_FAILED") {
+      if (authError?.code === "PHONE_NUMBER_ALREADY_IN_USE") {
+        if (firebaseAccountCreated) {
+          try {
+            await signOut(auth);
+          } catch (signOutError) {
+            console.error(
+              "Failed to sign out after duplicate phone number:",
+              signOutError,
+            );
+          }
+        }
+
+        setError(t("authPage.errors.phoneAlreadyInUse"));
+
+        return;
+      }
+
+      if (
+        firebaseAccountCreated &&
+        (authError?.code === "USER_SYNC_FAILED" ||
+          authError?.message === "USER_SYNC_FAILED")
+      ) {
         try {
           await signOut(auth);
         } catch (signOutError) {
@@ -312,6 +387,7 @@ export default function AuthPage() {
         }
 
         setError(t("authPage.errors.signupProfileSyncFailed"));
+
         return;
       }
 
@@ -321,7 +397,7 @@ export default function AuthPage() {
     }
   };
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     if (loading) {
@@ -445,6 +521,40 @@ export default function AuthPage() {
                 />
               </div>
             </div>
+
+            {mode === "signup" && (
+              <div>
+                <label
+                  htmlFor="phoneNumber"
+                  className="mb-2 block text-sm font-medium text-gray-700"
+                >
+                  {t("authPage.phoneNumber")}
+                  <span className="ml-1 font-normal text-gray-400">
+                    {t("authPage.optional")}
+                  </span>
+                </label>
+
+                <div className="relative">
+                  <Smartphone className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+
+                  <input
+                    id="phoneNumber"
+                    name="phoneNumber"
+                    type="tel"
+                    autoComplete="tel"
+                    value={formData.phoneNumber}
+                    onChange={handleChange}
+                    disabled={loading}
+                    placeholder={t("authPage.phonePlaceholder")}
+                    className="w-full rounded-lg border border-gray-300 py-3 pl-11 pr-4 text-sm text-gray-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-gray-100"
+                  />
+                </div>
+
+                <p className="mt-2 text-xs leading-5 text-gray-500">
+                  {t("authPage.phoneHint")}
+                </p>
+              </div>
+            )}
 
             <div>
               <div className="mb-2 flex items-center justify-between">

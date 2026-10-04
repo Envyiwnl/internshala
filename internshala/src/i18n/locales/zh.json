@@ -598,6 +598,10 @@
     "signupSuccess": "帐户创建成功。",
     "loginSecurityNote": "您的登录凭据由 Firebase Authentication 安全处理。",
     "signupSecurityNote": "创建帐户即表示您同意妥善保护自己的登录凭据。",
+    "phoneNumber": "手机号码",
+    "optional": "（可选）",
+    "phonePlaceholder": "+8613800138000",
+    "phoneHint": "如果您希望以后可以通过短信恢复密码，请填写包含国家代码的手机号码。",
     "errors": {
       "loginRequired": "请输入您的电子邮箱和密码。",
       "signupRequired": "请填写所有必填字段。",
@@ -614,7 +618,9 @@
       "loginFailed": "无法登录，请重试。",
       "signupFailed": "无法创建帐户，请重试。",
       "profileSyncFailed": "您已登录，但无法同步个人资料，请重试。",
-      "signupProfileSyncFailed": "您的帐户已创建，但无法同步个人资料，请重新登录。"
+      "signupProfileSyncFailed": "您的帐户已创建，但无法同步个人资料，请重新登录。",
+      "invalidPhone": "请输入包含国家代码的有效手机号码。",
+      "phoneAlreadyInUse": "此手机号码已绑定到其他账户。"
     }
   },
   "forgotPassword": {

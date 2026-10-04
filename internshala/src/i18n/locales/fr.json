@@ -597,6 +597,10 @@
     "signupSuccess": "Compte créé avec succès.",
     "loginSecurityNote": "Vos identifiants sont gérés de manière sécurisée par Firebase Authentication.",
     "signupSecurityNote": "En créant un compte, vous acceptez de protéger vos identifiants de connexion.",
+    "phoneNumber": "Numéro de téléphone",
+    "optional": "(Facultatif)",
+    "phonePlaceholder": "+33612345678",
+    "phoneHint": "Ajoutez votre numéro avec l'indicatif du pays si vous souhaitez pouvoir récupérer votre mot de passe par SMS.",
     "errors": {
       "loginRequired": "Veuillez saisir votre adresse e-mail et votre mot de passe.",
       "signupRequired": "Veuillez remplir tous les champs obligatoires.",
@@ -613,7 +617,9 @@
       "loginFailed": "Impossible de vous connecter. Veuillez réessayer.",
       "signupFailed": "Impossible de créer votre compte. Veuillez réessayer.",
       "profileSyncFailed": "Vous êtes connecté, mais votre profil n'a pas pu être synchronisé. Veuillez réessayer.",
-      "signupProfileSyncFailed": "Votre compte a été créé, mais votre profil n'a pas pu être synchronisé. Veuillez vous reconnecter."
+      "signupProfileSyncFailed": "Votre compte a été créé, mais votre profil n'a pas pu être synchronisé. Veuillez vous reconnecter.",
+      "invalidPhone": "Saisissez un numéro de téléphone valide avec l'indicatif du pays.",
+      "phoneAlreadyInUse": "Ce numéro de téléphone est déjà associé à un autre compte."
     }
   },
   "forgotPassword": {

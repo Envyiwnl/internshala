@@ -586,6 +586,10 @@
     "signupButton": "Crear cuenta",
     "loggingIn": "Iniciando sesión...",
     "creatingAccount": "Creando cuenta...",
+    "phoneNumber": "Número de móvil",
+    "optional": "(Opcional)",
+    "phonePlaceholder": "+34912345678",
+    "phoneHint": "Añade tu número con código de país si quieres poder recuperar tu contraseña por SMS.",
     "loginSuccess": "Sesión iniciada correctamente.",
     "signupSuccess": "Cuenta creada correctamente.",
     "loginSecurityNote": "Tus credenciales se gestionan de forma segura mediante Firebase Authentication.",
@@ -606,7 +610,9 @@
       "loginFailed": "No se pudo iniciar sesión. Inténtalo de nuevo.",
       "signupFailed": "No se pudo crear la cuenta. Inténtalo de nuevo.",
       "profileSyncFailed": "Has iniciado sesión, pero no se pudo sincronizar tu perfil. Inténtalo de nuevo.",
-      "signupProfileSyncFailed": "Tu cuenta se creó, pero no se pudo sincronizar tu perfil. Vuelve a iniciar sesión."
+      "signupProfileSyncFailed": "Tu cuenta se creó, pero no se pudo sincronizar tu perfil. Vuelve a iniciar sesión.",
+      "invalidPhone": "Introduce un número móvil válido con el código de país.",
+      "phoneAlreadyInUse": "Este número móvil ya está vinculado a otra cuenta."
     }
   },
   "forgotPassword": {
