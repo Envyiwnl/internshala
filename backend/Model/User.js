@@ -52,6 +52,26 @@ const UserSchema = new mongoose.Schema(
       ref: "Resume",
       default: null,
     },
+
+    mustChangePassword: {
+      type: Boolean,
+      default: false,
+    },
+
+    passwordChangedAt: {
+      type: Date,
+      default: null,
+    },
+
+    lastPasswordResetAt: {
+      type: Date,
+      default: null,
+    },
+
+    passwordResetAvailableAt: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: true,
