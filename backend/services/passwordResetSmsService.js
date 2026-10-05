@@ -60,16 +60,6 @@ const normalizeLanguage = (language) => {
   return templates[normalized] ? normalized : "en";
 };
 
-const validateTwilioConfig = () => {
-  if (
-    !process.env.TWILIO_ACCOUNT_SID ||
-    !process.env.TWILIO_AUTH_TOKEN ||
-    !process.env.TWILIO_PHONE_NUMBER
-  ) {
-    throw new Error("TWILIO_CONFIGURATION_MISSING");
-  }
-};
-
 const normalizePhoneNumber = (phoneNumber) => {
   if (typeof phoneNumber !== "string") {
     return "";
@@ -82,50 +72,116 @@ const isValidE164PhoneNumber = (phoneNumber) => {
   return /^\+[1-9]\d{7,14}$/.test(phoneNumber);
 };
 
-const sendSms = async ({ phoneNumber, message }) => {
-  validateTwilioConfig();
-
-  const normalizedPhone = normalizePhoneNumber(phoneNumber);
-
-  if (!isValidE164PhoneNumber(normalizedPhone)) {
-    throw new Error("INVALID_PHONE_NUMBER");
+const normalizeBaseUrl = (baseUrl) => {
+  if (typeof baseUrl !== "string" || !baseUrl.trim()) {
+    return "";
   }
 
-  const accountSid = process.env.TWILIO_ACCOUNT_SID;
+  let normalized = baseUrl.trim().replace(/\/+$/, "");
 
-  const body = new URLSearchParams();
+  if (!normalized.startsWith("https://") && !normalized.startsWith("http://")) {
+    normalized = `https://${normalized}`;
+  }
 
-  body.append("To", normalizedPhone);
-  body.append("From", process.env.TWILIO_PHONE_NUMBER);
-  body.append("Body", message);
+  return normalized;
+};
 
+const validateInfobipConfig = () => {
+  if (!process.env.INFOBIP_API_KEY) {
+    throw new Error("INFOBIP_API_KEY_MISSING");
+  }
+
+  if (!process.env.INFOBIP_BASE_URL) {
+    throw new Error("INFOBIP_BASE_URL_MISSING");
+  }
+};
+
+const sendSms = async ({ phoneNumber, message }) => {
   try {
-    const response = await axios.post(
-      `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,
-      body.toString(),
-      {
-        auth: {
-          username: accountSid,
-          password: process.env.TWILIO_AUTH_TOKEN,
-        },
+    validateInfobipConfig();
 
+    const normalizedPhone = normalizePhoneNumber(phoneNumber);
+
+    if (!isValidE164PhoneNumber(normalizedPhone)) {
+      throw new Error("INVALID_PHONE_NUMBER");
+    }
+
+    const baseUrl = normalizeBaseUrl(process.env.INFOBIP_BASE_URL);
+
+    const destination = normalizedPhone.slice(1);
+
+    const sender = process.env.INFOBIP_SENDER || "ServiceSMS";
+
+    const response = await axios.post(
+      `${baseUrl}/sms/3/messages`,
+      {
+        messages: [
+          {
+            sender,
+
+            destinations: [
+              {
+                to: destination,
+              },
+            ],
+
+            content: {
+              text: message,
+            },
+          },
+        ],
+      },
+      {
         headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
+          Authorization: `App ${process.env.INFOBIP_API_KEY}`,
+          "Content-Type": "application/json",
+          Accept: "application/json",
         },
 
         timeout: 10000,
       },
     );
 
+    const sentMessage = response.data?.messages?.[0];
+
+    if (!sentMessage?.messageId) {
+      console.error("Infobip SMS rejected: missing message ID", {
+        status: sentMessage?.status || null,
+      });
+
+      throw new Error("INFOBIP_MESSAGE_NOT_ACCEPTED");
+    }
+
+    const statusGroup = sentMessage.status?.groupName;
+
+    if (
+      statusGroup &&
+      statusGroup !== "PENDING" &&
+      statusGroup !== "DELIVERED"
+    ) {
+      console.error("Infobip SMS rejected:", {
+        messageId: sentMessage.messageId,
+        status: sentMessage.status,
+      });
+
+      throw new Error("INFOBIP_MESSAGE_REJECTED");
+    }
+
     return {
-      sid: response.data.sid,
-      status: response.data.status,
+      messageId: sentMessage.messageId,
+      status: sentMessage.status?.name || statusGroup || "ACCEPTED",
     };
   } catch (error) {
-    console.error(
-      "Password reset SMS delivery failed:",
-      error.response?.data?.message || error.message,
-    );
+    console.error("Password reset SMS delivery failed:", {
+      provider: "Infobip",
+      httpStatus: error.response?.status || null,
+      providerError:
+        error.response?.data?.requestError?.serviceException?.text ||
+        error.response?.data?.requestError?.serviceException?.messageId ||
+        error.response?.data?.error?.message ||
+        error.message ||
+        "Unknown Infobip error",
+    });
 
     throw new Error("PASSWORD_RESET_SMS_FAILED");
   }
