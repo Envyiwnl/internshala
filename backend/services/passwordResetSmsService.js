@@ -1,5 +1,7 @@
 const axios = require("axios");
 
+const TRACCAR_SMS_URL = "https://www.traccar.org/sms/";
+
 const templates = {
   en: {
     otp: (otp) =>
@@ -72,33 +74,15 @@ const isValidE164PhoneNumber = (phoneNumber) => {
   return /^\+[1-9]\d{7,14}$/.test(phoneNumber);
 };
 
-const normalizeBaseUrl = (baseUrl) => {
-  if (typeof baseUrl !== "string" || !baseUrl.trim()) {
-    return "";
-  }
-
-  let normalized = baseUrl.trim().replace(/\/+$/, "");
-
-  if (!normalized.startsWith("https://") && !normalized.startsWith("http://")) {
-    normalized = `https://${normalized}`;
-  }
-
-  return normalized;
-};
-
-const validateInfobipConfig = () => {
-  if (!process.env.INFOBIP_API_KEY) {
-    throw new Error("INFOBIP_API_KEY_MISSING");
-  }
-
-  if (!process.env.INFOBIP_BASE_URL) {
-    throw new Error("INFOBIP_BASE_URL_MISSING");
+const validateTraccarConfig = () => {
+  if (!process.env.TRACCAR_SMS_TOKEN) {
+    throw new Error("TRACCAR_SMS_TOKEN_MISSING");
   }
 };
 
 const sendSms = async ({ phoneNumber, message }) => {
   try {
-    validateInfobipConfig();
+    validateTraccarConfig();
 
     const normalizedPhone = normalizePhoneNumber(phoneNumber);
 
@@ -106,34 +90,15 @@ const sendSms = async ({ phoneNumber, message }) => {
       throw new Error("INVALID_PHONE_NUMBER");
     }
 
-    const baseUrl = normalizeBaseUrl(process.env.INFOBIP_BASE_URL);
-
-    const destination = normalizedPhone.slice(1);
-
-    const sender = process.env.INFOBIP_SENDER || "ServiceSMS";
-
     const response = await axios.post(
-      `${baseUrl}/sms/3/messages`,
+      TRACCAR_SMS_URL,
       {
-        messages: [
-          {
-            sender,
-
-            destinations: [
-              {
-                to: destination,
-              },
-            ],
-
-            content: {
-              text: message,
-            },
-          },
-        ],
+        to: normalizedPhone,
+        message,
       },
       {
         headers: {
-          Authorization: `App ${process.env.INFOBIP_API_KEY}`,
+          Authorization: process.env.TRACCAR_SMS_TOKEN,
           "Content-Type": "application/json",
           Accept: "application/json",
         },
@@ -142,45 +107,47 @@ const sendSms = async ({ phoneNumber, message }) => {
       },
     );
 
-    const sentMessage = response.data?.messages?.[0];
+    const data = response.data;
 
-    if (!sentMessage?.messageId) {
-      console.error("Infobip SMS rejected: missing message ID", {
-        status: sentMessage?.status || null,
+    const successfulResponse =
+      data?.successCount > 0 &&
+      data?.failureCount === 0 &&
+      data?.responses?.some((item) => item?.success === true);
+
+    if (!successfulResponse) {
+      console.error("Traccar SMS gateway rejected message:", {
+        successCount: data?.successCount ?? null,
+        failureCount: data?.failureCount ?? null,
+        responses:
+          data?.responses?.map((item) => ({
+            success: item?.success,
+            error: item?.error || null,
+          })) || [],
       });
 
-      throw new Error("INFOBIP_MESSAGE_NOT_ACCEPTED");
+      throw new Error("TRACCAR_SMS_NOT_ACCEPTED");
     }
 
-    const statusGroup = sentMessage.status?.groupName;
-
-    if (
-      statusGroup &&
-      statusGroup !== "PENDING" &&
-      statusGroup !== "DELIVERED"
-    ) {
-      console.error("Infobip SMS rejected:", {
-        messageId: sentMessage.messageId,
-        status: sentMessage.status,
-      });
-
-      throw new Error("INFOBIP_MESSAGE_REJECTED");
-    }
+    const successfulMessage = data.responses.find(
+      (item) => item?.success === true,
+    );
 
     return {
-      messageId: sentMessage.messageId,
-      status: sentMessage.status?.name || statusGroup || "ACCEPTED",
+      messageId: successfulMessage?.messageId || null,
+
+      status: "ACCEPTED",
     };
   } catch (error) {
     console.error("Password reset SMS delivery failed:", {
-      provider: "Infobip",
+      provider: "Traccar SMS Gateway",
+
       httpStatus: error.response?.status || null,
+
       providerError:
-        error.response?.data?.requestError?.serviceException?.text ||
-        error.response?.data?.requestError?.serviceException?.messageId ||
-        error.response?.data?.error?.message ||
+        error.response?.data?.message ||
+        error.response?.data?.error ||
         error.message ||
-        "Unknown Infobip error",
+        "Unknown Traccar SMS Gateway error",
     });
 
     throw new Error("PASSWORD_RESET_SMS_FAILED");
@@ -196,6 +163,7 @@ const sendPasswordResetOtpSms = async ({
 
   return sendSms({
     phoneNumber,
+
     message: templates[currentLanguage].otp(otp),
   });
 };
@@ -209,6 +177,7 @@ const sendTemporaryPasswordSms = async ({
 
   return sendSms({
     phoneNumber,
+
     message: templates[currentLanguage].password(password),
   });
 };
