@@ -24,6 +24,7 @@ type Stage = "request" | "otp" | "delivery" | "success";
 type ResetStatus = {
   resetMethod?: ResetMethod;
   destination?: string;
+  passwordDestination?: string;
   status?: string;
   verificationStatus?: string;
   deliveryStatus?: string;
@@ -46,6 +47,7 @@ type ApiResponse = {
   error?: string;
   message?: string;
   sessionToken?: string;
+  passwordDestination?: string;
   resetMethod?: ResetMethod;
   destination?: string;
   otpExpiresAt?: string;
@@ -110,6 +112,8 @@ export default function ForgotPasswordPage() {
   const [sessionToken, setSessionToken] = useState("");
 
   const [destination, setDestination] = useState("");
+
+  const [passwordDestination, setPasswordDestination] = useState("");
 
   const [otpExpiresAt, setOtpExpiresAt] = useState<string | null>(null);
 
@@ -320,6 +324,8 @@ export default function ForgotPasswordPage() {
 
       setDestination(reset.destination || "");
 
+      setPasswordDestination(reset.passwordDestination || "");
+
       setOtpExpiresAt(reset.otpExpiresAt || null);
 
       setSessionExpiresAt(reset.sessionExpiresAt || null);
@@ -413,6 +419,7 @@ export default function ForgotPasswordPage() {
         }
 
         setSessionToken(token);
+
         applyStatus(data.reset);
       } catch (statusError) {
         console.error("Password reset status recovery failed:", statusError);
@@ -525,6 +532,8 @@ export default function ForgotPasswordPage() {
 
       setDestination(data.destination || "");
 
+      setPasswordDestination(data.passwordDestination || "");
+
       setOtpExpiresAt(data.otpExpiresAt || null);
 
       setSessionExpiresAt(data.sessionExpiresAt || null);
@@ -595,6 +604,10 @@ export default function ForgotPasswordPage() {
         sessionToken,
         otp,
       });
+
+      if (data.passwordDestination) {
+        setPasswordDestination(data.passwordDestination);
+      }
 
       if (!response.ok) {
         if (
@@ -723,6 +736,10 @@ export default function ForgotPasswordPage() {
         sessionToken,
       });
 
+      if (data.passwordDestination) {
+        setPasswordDestination(data.passwordDestination);
+      }
+
       if (!response.ok) {
         if (data.error === "PASSWORD_RESET_ALREADY_COMPLETED") {
           await restoreStatus(sessionToken, false);
@@ -819,12 +836,12 @@ export default function ForgotPasswordPage() {
 
               {stage === "delivery" &&
                 t("forgotPassword.deliveryDescription", {
-                  destination,
+                  destination: passwordDestination || destination,
                 })}
 
               {stage === "success" &&
                 t("forgotPassword.successDescription", {
-                  destination,
+                  destination: passwordDestination || destination,
                 })}
             </p>
           </div>
@@ -1171,7 +1188,7 @@ export default function ForgotPasswordPage() {
 
                     <p className="mt-2 text-sm leading-6 text-green-800">
                       {t("forgotPassword.passwordSentDescription", {
-                        destination,
+                        destination: passwordDestination || destination,
                       })}
                     </p>
                   </div>

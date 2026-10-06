@@ -25,7 +25,7 @@ const {
   normalizePhoneNumber,
   isValidE164PhoneNumber,
   sendPasswordResetOtpSms,
-  sendTemporaryPasswordSms,
+  verifyPasswordResetOtpSms,
 } = require("../services/passwordResetSmsService");
 
 const {
@@ -226,22 +226,18 @@ const sendOtpForReset = async ({ reset, otp }) => {
 
   return sendPasswordResetOtpSms({
     phoneNumber: reset.destination,
-    otp,
-    language: reset.preferredLanguage,
   });
 };
 
-const sendTemporaryPasswordForReset = async ({ reset, password }) => {
-  if (reset.resetMethod === "email") {
-    return sendTemporaryPassword({
-      email: reset.destination,
-      password,
-      language: reset.preferredLanguage,
-    });
+const sendTemporaryPasswordForReset = async ({ reset, user, password }) => {
+  const email = reset.passwordDeliveryDestination || user.email;
+
+  if (!email) {
+    throw new Error("TEMPORARY_PASSWORD_EMAIL_MISSING");
   }
 
-  return sendTemporaryPasswordSms({
-    phoneNumber: reset.destination,
+  return sendTemporaryPassword({
+    email,
     password,
     language: reset.preferredLanguage,
   });
@@ -282,6 +278,8 @@ const getResetStatusPayload = (reset) => {
     resetMethod: reset.resetMethod,
 
     destination: getMaskedDestination(reset),
+
+    passwordDestination: maskEmail(reset.passwordDeliveryDestination),
 
     status: reset.status,
 
@@ -482,6 +480,7 @@ const generateAndDeliverTemporaryPassword = async ({ reset, user }) => {
   try {
     await sendTemporaryPasswordForReset({
       reset: claimedReset,
+      user,
       password: temporaryPassword,
     });
   } catch (error) {
@@ -695,16 +694,20 @@ router.post("/request", async (req, res) => {
       },
     );
 
-    const otp = generateOtp();
+    const isPhoneReset = method === "phone";
+
+    const otp = isPhoneReset ? "" : generateOtp();
 
     const sessionToken = generateSessionToken();
 
     const sessionTokenHash = hashSessionToken(sessionToken);
 
-    const otpHash = hashOtp({
-      userId: user._id.toString(),
-      otp,
-    });
+    const otpHash = isPhoneReset
+      ? ""
+      : hashOtp({
+          userId: user._id.toString(),
+          otp,
+        });
 
     const otpExpiresAt = new Date(now.getTime() + OTP_EXPIRY_MS);
 
@@ -728,7 +731,11 @@ router.post("/request", async (req, res) => {
 
       sessionTokenHash,
 
+      otpProvider: isPhoneReset ? "twilio_verify" : "mailjet",
+
       otpHash,
+
+      twilioVerificationSid: "",
 
       otpExpiresAt,
 
@@ -746,6 +753,10 @@ router.post("/request", async (req, res) => {
 
       deliveryStatus: "not_started",
 
+      passwordDeliveryMethod: "email",
+
+      passwordDeliveryDestination: user.email,
+
       deliveryAttempts: 0,
 
       passwordGenerationCount: 0,
@@ -758,10 +769,25 @@ router.post("/request", async (req, res) => {
     });
 
     try {
-      await sendOtpForReset({
+      const otpDelivery = await sendOtpForReset({
         reset: resetRecord,
         otp,
       });
+
+      if (resetRecord.resetMethod === "phone" && otpDelivery?.verificationSid) {
+        await PasswordReset.updateOne(
+          {
+            _id: resetRecord._id,
+          },
+          {
+            $set: {
+              twilioVerificationSid: otpDelivery.verificationSid,
+            },
+          },
+        );
+
+        resetRecord.twilioVerificationSid = otpDelivery.verificationSid;
+      }
     } catch (error) {
       await PasswordReset.updateOne(
         {
@@ -772,6 +798,8 @@ router.post("/request", async (req, res) => {
             isActive: false,
 
             status: "failed",
+
+            verificationStatus: "failed",
 
             failedAt: new Date(),
 
@@ -806,6 +834,8 @@ router.post("/request", async (req, res) => {
       resetMethod: method,
 
       destination: getMaskedDestination(resetRecord),
+
+      passwordDestination: maskEmail(user.email),
 
       otpExpiresAt,
 
@@ -935,19 +965,32 @@ router.post("/resend", async (req, res) => {
       });
     }
 
-    const otp = generateOtp();
+    const isPhoneReset = reset.resetMethod === "phone";
 
-    const newOtpHash = hashOtp({
-      userId: reset.user.toString(),
-      otp,
-    });
+    const otp = isPhoneReset ? "" : generateOtp();
 
-    const otpExpiresAt = new Date(now.getTime() + OTP_EXPIRY_MS);
+    const newOtpHash = isPhoneReset
+      ? reset.otpHash
+      : hashOtp({
+          userId: reset.user.toString(),
+          otp,
+        });
+
+    const existingOtpExpired =
+      !reset.otpExpiresAt ||
+      new Date(reset.otpExpiresAt).getTime() <= now.getTime();
+
+    const otpExpiresAt =
+      isPhoneReset && !existingOtpExpired
+        ? reset.otpExpiresAt
+        : new Date(now.getTime() + OTP_EXPIRY_MS);
 
     const previousState = {
       otpHash: reset.otpHash,
 
       otpExpiresAt: reset.otpExpiresAt,
+
+      twilioVerificationSid: reset.twilioVerificationSid,
 
       lastOtpSentAt: reset.lastOtpSentAt,
 
@@ -999,10 +1042,28 @@ router.post("/resend", async (req, res) => {
     }
 
     try {
-      await sendOtpForReset({
+      const otpDelivery = await sendOtpForReset({
         reset: updatedReset,
         otp,
       });
+
+      if (
+        updatedReset.resetMethod === "phone" &&
+        otpDelivery?.verificationSid
+      ) {
+        await PasswordReset.updateOne(
+          {
+            _id: updatedReset._id,
+          },
+          {
+            $set: {
+              twilioVerificationSid: otpDelivery.verificationSid,
+            },
+          },
+        );
+
+        updatedReset.twilioVerificationSid = otpDelivery.verificationSid;
+      }
     } catch (error) {
       await PasswordReset.updateOne(
         {
@@ -1020,6 +1081,8 @@ router.post("/resend", async (req, res) => {
             otpExpiresAt: previousState.otpExpiresAt,
 
             lastOtpSentAt: previousState.lastOtpSentAt,
+
+            twilioVerificationSid: previousState.twilioVerificationSid,
 
             resendCount: previousState.resendCount,
 
@@ -1124,13 +1187,52 @@ router.post("/verify", async (req, res) => {
       });
     }
 
-    const otpMatches = verifyOtpHash({
-      userId: reset.user.toString(),
+    let otpMatches = false;
 
-      otp,
+    if (reset.resetMethod === "phone") {
+      const verification = await verifyPasswordResetOtpSms({
+        phoneNumber: reset.destination,
+        otp,
+      });
 
-      storedHash: reset.otpHash,
-    });
+      if (verification.status === "max_attempts_reached") {
+        await PasswordReset.updateOne(
+          {
+            _id: reset._id,
+            isActive: true,
+          },
+          {
+            $set: {
+              isActive: false,
+              status: "failed",
+              verificationStatus: "failed",
+              failedAt: new Date(),
+              failureReason: "OTP_ATTEMPTS_EXCEEDED",
+            },
+          },
+        );
+
+        return res.status(429).json({
+          error: "OTP_ATTEMPTS_EXCEEDED",
+          attemptsRemaining: 0,
+        });
+      }
+
+      if (verification.status === "not_found") {
+        return res.status(410).json({
+          error: "OTP_EXPIRED",
+          canResend: reset.resendCount < MAX_RESENDS,
+        });
+      }
+
+      otpMatches = verification.approved;
+    } else {
+      otpMatches = verifyOtpHash({
+        userId: reset.user.toString(),
+        otp,
+        storedHash: reset.otpHash,
+      });
+    }
 
     if (!otpMatches) {
       const attemptedReset = await PasswordReset.findOneAndUpdate(
@@ -1276,6 +1378,10 @@ router.post("/verify", async (req, res) => {
 
       destination: getMaskedDestination(verifiedReset),
 
+      passwordDestination: maskEmail(
+        verifiedReset.passwordDeliveryDestination || user.email,
+      ),
+
       mustChangePassword: true,
     });
   } catch (error) {
@@ -1360,6 +1466,10 @@ router.post("/retry-delivery", async (req, res) => {
       message: "TEMPORARY_PASSWORD_DELIVERED",
 
       destination: latestReset ? getMaskedDestination(latestReset) : "",
+
+      passwordDestination: maskEmail(
+        latestReset?.passwordDeliveryDestination || user.email,
+      ),
 
       mustChangePassword: true,
     });
@@ -1493,6 +1603,10 @@ router.get("/history", verifyFirebaseToken, async (req, res) => {
         [
           "resetMethod",
           "destination",
+          "otpProvider",
+          "twilioVerificationSid",
+          "passwordDeliveryMethod",
+          "passwordDeliveryDestination",
           "preferredLanguage",
           "verificationStatus",
           "status",
@@ -1530,6 +1644,8 @@ router.get("/history", verifyFirebaseToken, async (req, res) => {
         entry.resetMethod === "email"
           ? maskEmail(entry.destination)
           : maskPhoneNumber(entry.destination),
+
+      passwordDeliveryDestination: maskEmail(entry.passwordDeliveryDestination),
     }));
 
     return res.status(200).json({

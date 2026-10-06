@@ -1,67 +1,5 @@
 const axios = require("axios");
 
-const TRACCAR_SMS_URL = "https://www.traccar.org/sms/";
-
-const templates = {
-  en: {
-    otp: (otp) =>
-      `Internshala password reset code: ${otp}. This code expires in 10 minutes. Do not share it with anyone.`,
-
-    password: (password) =>
-      `Your temporary Internshala password is: ${password}. Sign in with it and change your password immediately.`,
-  },
-
-  es: {
-    otp: (otp) =>
-      `Código de restablecimiento de contraseña de Internshala: ${otp}. Caduca en 10 minutos. No lo compartas con nadie.`,
-
-    password: (password) =>
-      `Tu contraseña temporal de Internshala es: ${password}. Inicia sesión con ella y cambia tu contraseña inmediatamente.`,
-  },
-
-  hi: {
-    otp: (otp) =>
-      `Internshala पासवर्ड रीसेट कोड: ${otp}। यह कोड 10 मिनट में समाप्त हो जाएगा। इसे किसी के साथ साझा न करें।`,
-
-    password: (password) =>
-      `आपका अस्थायी Internshala पासवर्ड है: ${password}। इससे लॉग इन करें और तुरंत अपना पासवर्ड बदलें।`,
-  },
-
-  pt: {
-    otp: (otp) =>
-      `Código de redefinição de senha do Internshala: ${otp}. Expira em 10 minutos. Não compartilhe com ninguém.`,
-
-    password: (password) =>
-      `Sua senha temporária do Internshala é: ${password}. Entre com ela e altere sua senha imediatamente.`,
-  },
-
-  zh: {
-    otp: (otp) =>
-      `Internshala 密码重置验证码：${otp}。验证码将在 10 分钟后过期。请勿与任何人分享。`,
-
-    password: (password) =>
-      `您的 Internshala 临时密码是：${password}。请使用该密码登录并立即更改密码。`,
-  },
-
-  fr: {
-    otp: (otp) =>
-      `Code de réinitialisation du mot de passe Internshala : ${otp}. Il expire dans 10 minutes. Ne le partagez avec personne.`,
-
-    password: (password) =>
-      `Votre mot de passe temporaire Internshala est : ${password}. Connectez-vous avec celui-ci et changez-le immédiatement.`,
-  },
-};
-
-const normalizeLanguage = (language) => {
-  if (!language) {
-    return "en";
-  }
-
-  const normalized = language.toLowerCase().split("-")[0];
-
-  return templates[normalized] ? normalized : "en";
-};
-
 const normalizePhoneNumber = (phoneNumber) => {
   if (typeof phoneNumber !== "string") {
     return "";
@@ -74,117 +12,161 @@ const isValidE164PhoneNumber = (phoneNumber) => {
   return /^\+[1-9]\d{7,14}$/.test(phoneNumber);
 };
 
-const validateTraccarConfig = () => {
-  if (!process.env.TRACCAR_SMS_TOKEN) {
-    throw new Error("TRACCAR_SMS_TOKEN_MISSING");
+const getTwilioConfig = () => {
+  const accountSid = process.env.TWILIO_ACCOUNT_SID;
+  const authToken = process.env.TWILIO_AUTH_TOKEN;
+  const serviceSid = process.env.TWILIO_VERIFY_SERVICE_SID;
+
+  if (!accountSid) {
+    throw new Error("TWILIO_ACCOUNT_SID_MISSING");
   }
+
+  if (!authToken) {
+    throw new Error("TWILIO_AUTH_TOKEN_MISSING");
+  }
+
+  if (!serviceSid) {
+    throw new Error("TWILIO_VERIFY_SERVICE_SID_MISSING");
+  }
+
+  return {
+    accountSid,
+    authToken,
+    serviceSid,
+  };
 };
 
-const sendSms = async ({ phoneNumber, message }) => {
+const sendPasswordResetOtpSms = async ({ phoneNumber }) => {
+  const normalizedPhone = normalizePhoneNumber(phoneNumber);
+
+  if (!isValidE164PhoneNumber(normalizedPhone)) {
+    throw new Error("INVALID_PHONE_NUMBER");
+  }
+
   try {
-    validateTraccarConfig();
+    const { accountSid, authToken, serviceSid } = getTwilioConfig();
 
-    const normalizedPhone = normalizePhoneNumber(phoneNumber);
+    const body = new URLSearchParams();
 
-    if (!isValidE164PhoneNumber(normalizedPhone)) {
-      throw new Error("INVALID_PHONE_NUMBER");
-    }
+    body.append("To", normalizedPhone);
+    body.append("Channel", "sms");
 
     const response = await axios.post(
-      TRACCAR_SMS_URL,
+      `https://verify.twilio.com/v2/Services/${serviceSid}/Verifications`,
+      body.toString(),
       {
-        to: normalizedPhone,
-        message,
-      },
-      {
+        auth: {
+          username: accountSid,
+          password: authToken,
+        },
+
         headers: {
-          Authorization: process.env.TRACCAR_SMS_TOKEN,
-          "Content-Type": "application/json",
-          Accept: "application/json",
+          "Content-Type": "application/x-www-form-urlencoded",
         },
 
         timeout: 10000,
       },
     );
 
-    const data = response.data;
-
-    const successfulResponse =
-      data?.successCount > 0 &&
-      data?.failureCount === 0 &&
-      data?.responses?.some((item) => item?.success === true);
-
-    if (!successfulResponse) {
-      console.error("Traccar SMS gateway rejected message:", {
-        successCount: data?.successCount ?? null,
-        failureCount: data?.failureCount ?? null,
-        responses:
-          data?.responses?.map((item) => ({
-            success: item?.success,
-            error: item?.error || null,
-          })) || [],
-      });
-
-      throw new Error("TRACCAR_SMS_NOT_ACCEPTED");
+    if (!response.data?.sid || response.data?.status !== "pending") {
+      throw new Error("TWILIO_VERIFICATION_NOT_STARTED");
     }
 
-    const successfulMessage = data.responses.find(
-      (item) => item?.success === true,
-    );
-
     return {
-      messageId: successfulMessage?.messageId || null,
-
-      status: "ACCEPTED",
+      verificationSid: response.data.sid,
+      status: response.data.status,
     };
   } catch (error) {
-    console.error("Password reset SMS delivery failed:", {
-      provider: "Traccar SMS Gateway",
-
+    console.error("Twilio Verify OTP delivery failed:", {
       httpStatus: error.response?.status || null,
-
+      twilioCode: error.response?.data?.code || null,
       providerError:
         error.response?.data?.message ||
-        error.response?.data?.error ||
         error.message ||
-        "Unknown Traccar SMS Gateway error",
+        "Unknown Twilio Verify error",
     });
 
     throw new Error("PASSWORD_RESET_SMS_FAILED");
   }
 };
 
-const sendPasswordResetOtpSms = async ({
-  phoneNumber,
-  otp,
-  language = "en",
-}) => {
-  const currentLanguage = normalizeLanguage(language);
+const verifyPasswordResetOtpSms = async ({ phoneNumber, otp }) => {
+  const normalizedPhone = normalizePhoneNumber(phoneNumber);
 
-  return sendSms({
-    phoneNumber,
+  if (!isValidE164PhoneNumber(normalizedPhone)) {
+    throw new Error("INVALID_PHONE_NUMBER");
+  }
 
-    message: templates[currentLanguage].otp(otp),
-  });
-};
+  if (typeof otp !== "string" || !/^\d{6}$/.test(otp)) {
+    throw new Error("INVALID_OTP_FORMAT");
+  }
 
-const sendTemporaryPasswordSms = async ({
-  phoneNumber,
-  password,
-  language = "en",
-}) => {
-  const currentLanguage = normalizeLanguage(language);
+  try {
+    const { accountSid, authToken, serviceSid } = getTwilioConfig();
 
-  return sendSms({
-    phoneNumber,
+    const body = new URLSearchParams();
 
-    message: templates[currentLanguage].password(password),
-  });
+    body.append("To", normalizedPhone);
+    body.append("Code", otp);
+
+    const response = await axios.post(
+      `https://verify.twilio.com/v2/Services/${serviceSid}/VerificationCheck`,
+      body.toString(),
+      {
+        auth: {
+          username: accountSid,
+          password: authToken,
+        },
+
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+
+        timeout: 10000,
+      },
+    );
+
+    return {
+      approved: response.data?.status === "approved",
+      status: response.data?.status || "pending",
+      verificationSid: response.data?.sid || null,
+    };
+  } catch (error) {
+    const httpStatus = error.response?.status;
+    const twilioCode = error.response?.data?.code;
+
+    if (twilioCode === 60202) {
+      return {
+        approved: false,
+        status: "max_attempts_reached",
+        verificationSid: null,
+      };
+    }
+
+    if (httpStatus === 404) {
+      return {
+        approved: false,
+        status: "not_found",
+        verificationSid: null,
+      };
+    }
+
+    console.error("Twilio Verify OTP validation failed:", {
+      httpStatus: httpStatus || null,
+      twilioCode: twilioCode || null,
+      providerError:
+        error.response?.data?.message ||
+        error.message ||
+        "Unknown Twilio Verify error",
+    });
+
+    throw new Error("TWILIO_VERIFICATION_CHECK_FAILED");
+  }
 };
 
 module.exports = {
   normalizePhoneNumber,
   isValidE164PhoneNumber,
   sendPasswordResetOtpSms,
-  sendTemporaryPasswordSms,
+  verifyPasswordResetOtpSms,
 };

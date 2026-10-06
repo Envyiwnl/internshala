@@ -669,7 +669,7 @@
     "nextStepOne": "Return to the login page.",
     "nextStepTwo": "Sign in using the temporary password you received.",
     "nextStepThree": "You will be required to create a new permanent password immediately.",
-    "passwordNeverShown": "Your temporary password is delivered only through your verified recovery method.",
+    "passwordNeverShown": "Your temporary password is sent only to your registered email address.",
     "goToLogin": "Go to Login",
     "errors": {
       "invalidMethod": "Please select a valid password reset method.",

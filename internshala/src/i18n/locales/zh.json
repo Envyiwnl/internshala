@@ -669,7 +669,7 @@
     "nextStepOne": "返回登录页面。",
     "nextStepTwo": "使用收到的临时密码登录。",
     "nextStepThree": "登录后必须立即创建新的永久密码。",
-    "passwordNeverShown": "临时密码只会通过已验证的恢复方式发送。",
+    "passwordNeverShown": "您的临时密码只会发送到您注册的电子邮箱地址。",
     "goToLogin": "前往登录",
     "errors": {
       "invalidMethod": "请选择有效的密码重置方式。",

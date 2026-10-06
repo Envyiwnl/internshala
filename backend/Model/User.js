@@ -14,6 +14,15 @@ const UserSchema = new mongoose.Schema(
       default: "",
     },
 
+    username: {
+      type: String,
+      trim: true,
+      lowercase: true,
+      minlength: 3,
+      maxlength: 24,
+      match: /^[a-z0-9_]+$/,
+    },
+
     email: {
       type: String,
       required: true,
@@ -33,6 +42,24 @@ const UserSchema = new mongoose.Schema(
       type: String,
       enum: ["en", "es", "hi", "pt", "zh", "fr"],
       default: "en",
+    },
+
+    friendCount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+
+    followerCount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+
+    followingCount: {
+      type: Number,
+      default: 0,
+      min: 0,
     },
 
     isPremium: {
@@ -88,5 +115,20 @@ UserSchema.index(
     name: "unique_non_empty_phone_number",
   },
 );
+
+UserSchema.index(
+  { username: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      username: { $type: "string" },
+    },
+    name: "unique_username",
+  },
+);
+
+UserSchema.index({
+  name: 1,
+});
 
 module.exports = mongoose.model("User", UserSchema);

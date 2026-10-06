@@ -661,7 +661,7 @@
     "nextStepOne": "Vuelve a la página de inicio de sesión.",
     "nextStepTwo": "Inicia sesión con la contraseña temporal recibida.",
     "nextStepThree": "Deberás crear inmediatamente una nueva contraseña permanente.",
-    "passwordNeverShown": "La contraseña temporal solo se entrega mediante tu método de recuperación verificado.",
+    "passwordNeverShown": "Tu contraseña temporal se envía únicamente a tu dirección de correo electrónico registrada.",
     "goToLogin": "Ir al inicio de sesión",
     "errors": {
       "invalidMethod": "Selecciona un método de recuperación válido.",

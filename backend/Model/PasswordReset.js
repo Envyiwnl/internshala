@@ -39,9 +39,20 @@ const PasswordResetSchema = new mongoose.Schema(
       index: true,
     },
 
+    otpProvider: {
+      type: String,
+      enum: ["mailjet", "twilio_verify"],
+      required: true,
+    },
+
     otpHash: {
       type: String,
-      required: true,
+      default: "",
+    },
+
+    twilioVerificationSid: {
+      type: String,
+      default: "",
     },
 
     otpExpiresAt: {
@@ -103,6 +114,17 @@ const PasswordResetSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
       index: true,
+    },
+
+    passwordDeliveryMethod: {
+      type: String,
+      enum: ["email"],
+      default: "email",
+    },
+
+    passwordDeliveryDestination: {
+      type: String,
+      default: "",
     },
 
     passwordUpdatedAt: {

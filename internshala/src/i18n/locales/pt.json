@@ -669,7 +669,7 @@
     "nextStepOne": "Volte para a página de login.",
     "nextStepTwo": "Entre usando a senha temporária recebida.",
     "nextStepThree": "Você deverá criar imediatamente uma nova senha permanente.",
-    "passwordNeverShown": "A senha temporária é entregue somente pelo método de recuperação verificado.",
+    "passwordNeverShown": "Sua senha temporária é enviada somente para o seu endereço de e-mail cadastrado.",
     "goToLogin": "Ir para o Login",
     "errors": {
       "invalidMethod": "Selecione um método de recuperação válido.",

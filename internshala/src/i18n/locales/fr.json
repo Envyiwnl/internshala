@@ -668,7 +668,7 @@
     "nextStepOne": "Retournez à la page de connexion.",
     "nextStepTwo": "Connectez-vous avec le mot de passe temporaire reçu.",
     "nextStepThree": "Vous devrez immédiatement créer un nouveau mot de passe permanent.",
-    "passwordNeverShown": "Le mot de passe temporaire est uniquement envoyé via votre méthode de récupération vérifiée.",
+    "passwordNeverShown": "Votre mot de passe temporaire est envoyé uniquement à votre adresse e-mail enregistrée.",
     "goToLogin": "Aller à la connexion",
     "errors": {
       "invalidMethod": "Sélectionnez une méthode de récupération valide.",

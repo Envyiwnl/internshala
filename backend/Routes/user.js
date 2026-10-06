@@ -2,7 +2,10 @@ const express = require("express");
 const router = express.Router();
 
 const User = require("../Model/User");
+
 const verifyFirebaseToken = require("../middleware/verifyFirebaseToken");
+
+const { ensureUserUsername } = require("../utils/username");
 
 const normalizePhoneNumber = (phoneNumber) => {
   if (typeof phoneNumber !== "string") {
@@ -54,7 +57,7 @@ router.post("/sync", verifyFirebaseToken, async (req, res) => {
       fieldsToUpdate.phoneNumber = requestedPhoneNumber;
     }
 
-    const user = await User.findOneAndUpdate(
+    let user = await User.findOneAndUpdate(
       {
         firebaseUid: firebaseUser.uid,
       },
@@ -71,6 +74,8 @@ router.post("/sync", verifyFirebaseToken, async (req, res) => {
         setDefaultsOnInsert: true,
       },
     );
+
+    user = await ensureUserUsername(user);
 
     return res.status(200).json({
       user,
