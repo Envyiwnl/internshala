@@ -23,7 +23,7 @@ router.post("/sync", verifyFirebaseToken, async (req, res) => {
   try {
     const firebaseUser = req.firebaseUser;
 
-    const allowedInitialLanguages = ["en", "es", "hi", "pt", "zh"];
+    const allowedInitialLanguages = ["en", "es", "hi", "pt", "zh", "fr"];
 
     const requestedLanguage = req.body?.preferredLanguage;
 
