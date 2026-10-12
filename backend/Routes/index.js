@@ -11,6 +11,7 @@ const passwordReset = require("./passwordReset");
 const social = require("./social");
 const post = require("./post");
 const notification = require("./notification");
+const feed = require("./feed");
 
 router.use("/admin", admin);
 router.use("/internship", intern);
@@ -23,5 +24,6 @@ router.use("/password-reset", passwordReset);
 router.use("/social", social);
 router.use("/posts", post);
 router.use("/notifications", notification);
+router.use("/feed", feed);
 
 module.exports = router;
