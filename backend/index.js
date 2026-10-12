@@ -7,7 +7,7 @@ const PORT = process.env.PORT || 5001;
 
 const corsOptions = {
   origin: ["https://internshala-beta.vercel.app", "http://localhost:3000"],
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
 };
 app.set("trust proxy", 1);

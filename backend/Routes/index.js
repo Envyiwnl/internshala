@@ -10,7 +10,7 @@ const resume = require("./resume");
 const passwordReset = require("./passwordReset");
 const social = require("./social");
 const post = require("./post");
-
+const notification = require("./notification");
 
 router.use("/admin", admin);
 router.use("/internship", intern);
@@ -22,5 +22,6 @@ router.use("/language", language);
 router.use("/password-reset", passwordReset);
 router.use("/social", social);
 router.use("/posts", post);
+router.use("/notifications", notification);
 
 module.exports = router;

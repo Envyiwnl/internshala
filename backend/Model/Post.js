@@ -39,6 +39,18 @@ const PostSchema = new mongoose.Schema(
       default: null,
     },
 
+    hashtags: {
+      type: [String],
+      default: [],
+    },
+
+    mentions: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
+
     likeCount: {
       type: Number,
       default: 0,
@@ -95,5 +107,8 @@ PostSchema.index({
   contentHash: 1,
   createdAt: -1,
 });
+
+PostSchema.index({ hashtags: 1, createdAt: -1 });
+PostSchema.index({ mentions: 1, createdAt: -1 });
 
 module.exports = mongoose.model("Post", PostSchema);

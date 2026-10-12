@@ -4,6 +4,7 @@ const mongoose = require("mongoose");
 const User = require("../Model/User");
 const Friendship = require("../Model/Friendship");
 const Follow = require("../Model/Follow");
+const Notification = require("../Model/Notification");
 
 const verifyFirebaseToken = require("../middleware/verifyFirebaseToken");
 
@@ -421,6 +422,19 @@ router.post("/friend-requests/:userId", async (req, res) => {
         requestedAt: new Date(),
       });
 
+      try {
+        await Notification.create({
+          recipient: targetUser._id,
+          actor: currentUser._id,
+          type: "friend_request",
+        });
+      } catch (notificationError) {
+        console.error(
+          "Friend request notification creation failed:",
+          notificationError,
+        );
+      }
+
       return res.status(201).json({
         message: "FRIEND_REQUEST_SENT",
 
@@ -587,6 +601,19 @@ router.post("/friend-requests/:requestId/accept", async (req, res) => {
 
       syncFriendCount(friendship.requester),
     ]);
+
+    try {
+      await Notification.create({
+        recipient: friendship.requester,
+        actor: currentUser._id,
+        type: "friend_accept",
+      });
+    } catch (notificationError) {
+      console.error(
+        "Friend acceptance notification creation failed:",
+        notificationError,
+      );
+    }
 
     return res.status(200).json({
       message: "FRIEND_REQUEST_ACCEPTED",
@@ -880,6 +907,16 @@ router.post("/follows/:userId", async (req, res) => {
 
       syncFollowCounts(targetUser._id),
     ]);
+
+    try {
+      await Notification.create({
+        recipient: targetUser._id,
+        actor: currentUser._id,
+        type: "follow",
+      });
+    } catch (notificationError) {
+      console.error("Follow notification creation failed:", notificationError);
+    }
 
     return res.status(201).json({
       message: "USER_FOLLOWED",

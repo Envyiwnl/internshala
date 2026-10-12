@@ -12,6 +12,7 @@ const PostSave = require("../Model/PostSave");
 const PostShare = require("../Model/PostShare");
 const PostView = require("../Model/PostView");
 const PostReport = require("../Model/PostReport");
+const Notification = require("../Model/Notification");
 
 const verifyFirebaseToken = require("../middleware/verifyFirebaseToken");
 
@@ -51,6 +52,32 @@ const buildContentHash = (text) => {
     .createHash("sha256")
     .update(normalizedText, "utf8")
     .digest("hex");
+};
+
+const extractHashtags = (text) => {
+  const matches = text.matchAll(/#([\p{L}\p{N}_]+)/gu);
+
+  return [...new Set(Array.from(matches, (match) => match[1].toLowerCase()))];
+};
+
+const extractMentionUsernames = (text) => {
+  const matches = text.matchAll(/@([a-zA-Z0-9_]+)/g);
+
+  return [...new Set(Array.from(matches, (match) => match[1].toLowerCase()))];
+};
+
+const resolveMentionUserIds = async (usernames) => {
+  if (!usernames.length) {
+    return [];
+  }
+
+  const users = await User.find({
+    username: {
+      $in: usernames,
+    },
+  }).select("_id");
+
+  return users.map((user) => user._id);
 };
 
 const validatePostText = (value) => {
@@ -198,6 +225,9 @@ router.post("/", async (req, res) => {
 
     const text = textValidation.text;
     const contentHash = buildContentHash(text);
+    const hashtags = extractHashtags(text);
+    const mentionUsernames = extractMentionUsernames(text);
+    const mentionUserIds = await resolveMentionUserIds(mentionUsernames);
 
     const privacy =
       typeof req.body?.privacy === "string"
@@ -262,9 +292,43 @@ router.post("/", async (req, res) => {
       privacy,
       friendCountAtPosting: friendCount,
       contentHash,
+      hashtags,
+      mentions: mentionUserIds,
     });
 
     postCreated = true;
+
+    try {
+      const notificationRecipients = [];
+
+      for (const mentionedUserId of mentionUserIds) {
+        if (mentionedUserId.toString() === currentUser._id.toString()) {
+          continue;
+        }
+
+        const allowed = await canViewPost({
+          post,
+          currentUserId: mentionedUserId,
+        });
+
+        if (allowed) {
+          notificationRecipients.push(mentionedUserId);
+        }
+      }
+
+      if (notificationRecipients.length) {
+        await Notification.insertMany(
+          notificationRecipients.map((recipient) => ({
+            recipient,
+            actor: currentUser._id,
+            type: "mention",
+            post: post._id,
+          })),
+        );
+      }
+    } catch (notificationError) {
+      console.error("Mention notification creation failed:", notificationError);
+    }
 
     const remaining =
       reservedQuota.limit === null
@@ -469,6 +533,9 @@ router.put("/:postId", async (req, res) => {
 
       const text = textValidation.text;
       const contentHash = buildContentHash(text);
+      const hashtags = extractHashtags(text);
+      const mentionUsernames = extractMentionUsernames(text);
+      const mentionUserIds = await resolveMentionUserIds(mentionUsernames);
 
       const duplicateWindowStart = new Date(
         Date.now() - DUPLICATE_POST_WINDOW_MS,
@@ -496,6 +563,8 @@ router.put("/:postId", async (req, res) => {
 
       post.text = text;
       post.contentHash = contentHash;
+      post.hashtags = hashtags;
+      post.mentions = mentionUserIds;
     }
 
     if (hasPrivacy) {
@@ -516,6 +585,76 @@ router.put("/:postId", async (req, res) => {
     post.editedAt = now;
 
     await post.save();
+
+    try {
+      const desiredRecipients = [];
+
+      for (const mentionedUserId of post.mentions || []) {
+        if (mentionedUserId.toString() === currentUser._id.toString()) {
+          continue;
+        }
+
+        const allowed = await canViewPost({
+          post,
+          currentUserId: mentionedUserId,
+        });
+
+        if (allowed) {
+          desiredRecipients.push(mentionedUserId);
+        }
+      }
+
+      const existingNotifications = await Notification.find({
+        post: post._id,
+        actor: currentUser._id,
+        type: "mention",
+      }).select("_id recipient");
+
+      const desiredRecipientSet = new Set(
+        desiredRecipients.map((userId) => userId.toString()),
+      );
+
+      const existingRecipientSet = new Set(
+        existingNotifications.map((notification) =>
+          notification.recipient.toString(),
+        ),
+      );
+
+      const staleNotificationIds = existingNotifications
+        .filter(
+          (notification) =>
+            !desiredRecipientSet.has(notification.recipient.toString()),
+        )
+        .map((notification) => notification._id);
+
+      if (staleNotificationIds.length) {
+        await Notification.deleteMany({
+          _id: {
+            $in: staleNotificationIds,
+          },
+        });
+      }
+
+      const missingRecipients = desiredRecipients.filter(
+        (userId) => !existingRecipientSet.has(userId.toString()),
+      );
+
+      if (missingRecipients.length) {
+        await Notification.insertMany(
+          missingRecipients.map((recipient) => ({
+            recipient,
+            actor: currentUser._id,
+            type: "mention",
+            post: post._id,
+          })),
+        );
+      }
+    } catch (notificationError) {
+      console.error(
+        "Edited post mention notification sync failed:",
+        notificationError,
+      );
+    }
 
     return res.status(200).json({
       message: "POST_UPDATED",
@@ -590,6 +729,7 @@ router.delete("/:postId", async (req, res) => {
         PostShare.deleteMany({ post: post._id }),
         PostView.deleteMany({ post: post._id }),
         PostReport.deleteMany({ post: post._id }),
+        Notification.deleteMany({ post: post._id }),
       ]);
     } catch (cleanupError) {
       console.error("Post interaction cleanup failed:", cleanupError);
@@ -681,6 +821,22 @@ router.post("/:postId/likes", async (req, res) => {
 
       if (!updatedPost) {
         throw new Error("POST_NOT_FOUND_AFTER_LIKE");
+      }
+
+      if (post.author.toString() !== currentUser._id.toString()) {
+        try {
+          await Notification.create({
+            recipient: post.author,
+            actor: currentUser._id,
+            type: "like",
+            post: post._id,
+          });
+        } catch (notificationError) {
+          console.error(
+            "Like notification creation failed:",
+            notificationError,
+          );
+        }
       }
 
       return res.status(201).json({
@@ -895,6 +1051,23 @@ router.post("/:postId/comments", async (req, res) => {
 
       if (!updatedPost) {
         throw new Error("POST_NOT_FOUND_AFTER_COMMENT");
+      }
+
+      if (post.author.toString() !== currentUser._id.toString()) {
+        try {
+          await Notification.create({
+            recipient: post.author,
+            actor: currentUser._id,
+            type: "comment",
+            post: post._id,
+            comment: createdComment._id,
+          });
+        } catch (notificationError) {
+          console.error(
+            "Comment notification creation failed:",
+            notificationError,
+          );
+        }
       }
 
       return res.status(201).json({
@@ -1169,11 +1342,33 @@ router.delete("/:postId/comments/:commentId", async (req, res) => {
         },
       ).select("commentCount");
 
+      try {
+        await Notification.deleteMany({
+          comment: deletedComment._id,
+        });
+      } catch (notificationError) {
+        console.error(
+          "Deleted comment notification cleanup failed:",
+          notificationError,
+        );
+      }
+
       return res.status(200).json({
         message: "COMMENT_DELETED",
         commentId: deletedComment._id.toString(),
         commentCount: syncedPost?.commentCount ?? exactCommentCount,
       });
+    }
+
+    try {
+      await Notification.deleteMany({
+        comment: deletedComment._id,
+      });
+    } catch (notificationError) {
+      console.error(
+        "Deleted comment notification cleanup failed:",
+        notificationError,
+      );
     }
 
     return res.status(200).json({
@@ -1561,6 +1756,22 @@ router.post("/:postId/shares", async (req, res) => {
 
       if (!updatedPost) {
         throw new Error("POST_NOT_FOUND_AFTER_SHARE");
+      }
+
+      if (post.author.toString() !== currentUser._id.toString()) {
+        try {
+          await Notification.create({
+            recipient: post.author,
+            actor: currentUser._id,
+            type: "share",
+            post: post._id,
+          });
+        } catch (notificationError) {
+          console.error(
+            "Share notification creation failed:",
+            notificationError,
+          );
+        }
       }
 
       return res.status(201).json({
