@@ -226,6 +226,7 @@ router.post("/", async (req, res) => {
   let reservedQuota = null;
   let quotaUserId = null;
   let postCreated = false;
+  let createdPost = null;
 
   try {
     const currentUser = await getCurrentUser(req);
@@ -344,6 +345,8 @@ router.post("/", async (req, res) => {
       media: mediaAsset ? mediaAsset._id : null,
     });
 
+    createdPost = post;
+
     if (mediaAsset) {
       const attachedMedia = await MediaAsset.findOneAndUpdate(
         {
@@ -362,11 +365,6 @@ router.post("/", async (req, res) => {
       );
 
       if (!attachedMedia) {
-        await Post.deleteOne({
-          _id: post._id,
-          author: currentUser._id,
-        });
-
         throw new Error("MEDIA_ATTACH_FAILED");
       }
     }
@@ -424,6 +422,16 @@ router.post("/", async (req, res) => {
       },
     });
   } catch (error) {
+    if (createdPost && !postCreated) {
+      try {
+        await Post.deleteOne({
+          _id: createdPost._id,
+          author: quotaUserId,
+        });
+      } catch (postRollbackError) {
+        console.error("Post creation rollback failed:", postRollbackError);
+      }
+    }
     if (reservedQuota?.allowed && quotaUserId && !postCreated) {
       try {
         await releasePostQuota({

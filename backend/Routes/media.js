@@ -78,14 +78,34 @@ router.post("/upload", handleMediaUpload, async (req, res) => {
 
     const contentHash = buildMediaHash(req.file.buffer);
 
-    const duplicateAsset = await MediaAsset.exists({
+    const duplicateAsset = await MediaAsset.findOne({
       uploader: currentUser._id,
       contentHash,
-    });
+    }).select(
+      "_id post resourceType mimeType secureUrl format bytes width height duration createdAt",
+    );
 
     if (duplicateAsset) {
-      return res.status(409).json({
-        error: "DUPLICATE_MEDIA",
+      if (duplicateAsset.post) {
+        return res.status(409).json({
+          error: "DUPLICATE_MEDIA",
+        });
+      }
+
+      return res.status(200).json({
+        message: "MEDIA_ALREADY_UPLOADED",
+        media: {
+          id: duplicateAsset._id.toString(),
+          resourceType: duplicateAsset.resourceType,
+          mimeType: duplicateAsset.mimeType,
+          url: duplicateAsset.secureUrl,
+          format: duplicateAsset.format || "",
+          bytes: duplicateAsset.bytes || 0,
+          width: duplicateAsset.width ?? null,
+          height: duplicateAsset.height ?? null,
+          duration: duplicateAsset.duration ?? null,
+          createdAt: duplicateAsset.createdAt,
+        },
       });
     }
 
