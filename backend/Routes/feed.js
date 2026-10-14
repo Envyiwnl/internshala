@@ -31,12 +31,31 @@ const serializeAuthor = (user) => {
   };
 };
 
+const serializeMedia = (media) => {
+  if (!media || !media.secureUrl) {
+    return null;
+  }
+
+  return {
+    id: media._id.toString(),
+    resourceType: media.resourceType,
+    mimeType: media.mimeType,
+    url: media.secureUrl,
+    format: media.format || "",
+    bytes: media.bytes || 0,
+    width: media.width ?? null,
+    height: media.height ?? null,
+    duration: media.duration ?? null,
+  };
+};
+
 const serializePost = (post, interactionState = {}) => {
   return {
     id: post._id.toString(),
     author: serializeAuthor(post.author),
     text: post.text,
     privacy: post.privacy,
+    media: serializeMedia(post.media),
     hashtags: post.hashtags || [],
     friendCountAtPosting: post.friendCountAtPosting,
     editedAt: post.editedAt,
@@ -183,6 +202,10 @@ router.get("/", async (req, res) => {
       $or: visibilityConditions,
     })
       .populate("author", "username name photo")
+      .populate(
+        "media",
+        "resourceType mimeType secureUrl format bytes width height duration",
+      )
       .sort({
         createdAt: -1,
       })

@@ -13,6 +13,9 @@ const PostShare = require("../Model/PostShare");
 const PostView = require("../Model/PostView");
 const PostReport = require("../Model/PostReport");
 const Notification = require("../Model/Notification");
+const MediaAsset = require("../Model/MediaAsset");
+
+const cloudinary = require("../config/cloudinary");
 
 const verifyFirebaseToken = require("../middleware/verifyFirebaseToken");
 
@@ -125,12 +128,31 @@ const serializeAuthor = (user) => {
   };
 };
 
-const serializePost = (post, author) => {
+const serializeMedia = (media) => {
+  if (!media || !media.secureUrl) {
+    return null;
+  }
+
+  return {
+    id: media._id.toString(),
+    resourceType: media.resourceType,
+    mimeType: media.mimeType,
+    url: media.secureUrl,
+    format: media.format || "",
+    bytes: media.bytes || 0,
+    width: media.width ?? null,
+    height: media.height ?? null,
+    duration: media.duration ?? null,
+  };
+};
+
+const serializePost = (post, author, media = post.media) => {
   return {
     id: post._id.toString(),
     author: serializeAuthor(author),
     text: post.text,
     privacy: post.privacy,
+    media: serializeMedia(media),
     friendCountAtPosting: post.friendCountAtPosting,
     editedAt: post.editedAt,
     likeCount: post.likeCount || 0,
@@ -214,6 +236,31 @@ router.post("/", async (req, res) => {
       });
     }
 
+    const mediaId =
+      typeof req.body?.mediaId === "string" ? req.body.mediaId.trim() : "";
+
+    let mediaAsset = null;
+
+    if (mediaId) {
+      if (!mongoose.Types.ObjectId.isValid(mediaId)) {
+        return res.status(400).json({
+          error: "INVALID_MEDIA_ID",
+        });
+      }
+
+      mediaAsset = await MediaAsset.findOne({
+        _id: mediaId,
+        uploader: currentUser._id,
+        post: null,
+      });
+
+      if (!mediaAsset) {
+        return res.status(404).json({
+          error: "MEDIA_NOT_AVAILABLE",
+        });
+      }
+    }
+
     const textValidation = validatePostText(req.body?.text);
 
     if (!textValidation.valid) {
@@ -294,7 +341,35 @@ router.post("/", async (req, res) => {
       contentHash,
       hashtags,
       mentions: mentionUserIds,
+      media: mediaAsset ? mediaAsset._id : null,
     });
+
+    if (mediaAsset) {
+      const attachedMedia = await MediaAsset.findOneAndUpdate(
+        {
+          _id: mediaAsset._id,
+          uploader: currentUser._id,
+          post: null,
+        },
+        {
+          $set: {
+            post: post._id,
+          },
+        },
+        {
+          new: true,
+        },
+      );
+
+      if (!attachedMedia) {
+        await Post.deleteOne({
+          _id: post._id,
+          author: currentUser._id,
+        });
+
+        throw new Error("MEDIA_ATTACH_FAILED");
+      }
+    }
 
     postCreated = true;
 
@@ -338,7 +413,7 @@ router.post("/", async (req, res) => {
     return res.status(201).json({
       message: "POST_CREATED",
 
-      post: serializePost(post, currentUser),
+      post: serializePost(post, currentUser, mediaAsset),
 
       quota: {
         friendCount,
@@ -448,6 +523,10 @@ router.get("/user/:username", async (req, res) => {
       },
     })
       .populate("author", "username name photo")
+      .populate(
+        "media",
+        "resourceType mimeType secureUrl format bytes width height duration",
+      )
       .sort({
         createdAt: -1,
       })
@@ -586,6 +665,11 @@ router.put("/:postId", async (req, res) => {
 
     await post.save();
 
+    await post.populate(
+      "media",
+      "resourceType mimeType secureUrl format bytes width height duration",
+    );
+
     try {
       const desiredRecipients = [];
 
@@ -719,6 +803,28 @@ router.delete("/:postId", async (req, res) => {
       return res.status(404).json({
         error: "POST_NOT_FOUND",
       });
+    }
+
+    if (deletedPost.media) {
+      try {
+        const mediaAsset = await MediaAsset.findOne({
+          _id: deletedPost.media,
+          uploader: currentUser._id,
+          post: deletedPost._id,
+        });
+
+        if (mediaAsset) {
+          await cloudinary.uploader.destroy(mediaAsset.cloudinaryPublicId, {
+            resource_type: mediaAsset.resourceType,
+          });
+
+          await MediaAsset.deleteOne({
+            _id: mediaAsset._id,
+          });
+        }
+      } catch (mediaCleanupError) {
+        console.error("Post media cleanup failed:", mediaCleanupError);
+      }
     }
 
     try {
@@ -1637,10 +1743,17 @@ router.get("/saved/me", async (req, res) => {
     })
       .populate({
         path: "post",
-        populate: {
-          path: "author",
-          select: "username name photo",
-        },
+        populate: [
+          {
+            path: "author",
+            select: "username name photo",
+          },
+          {
+            path: "media",
+            select:
+              "resourceType mimeType secureUrl format bytes width height duration",
+          },
+        ],
       })
       .sort({
         createdAt: -1,
@@ -2050,10 +2163,12 @@ router.get("/:postId", async (req, res) => {
       });
     }
 
-    const post = await Post.findById(postId).populate(
-      "author",
-      "username name photo",
-    );
+    const post = await Post.findById(postId)
+      .populate("author", "username name photo")
+      .populate(
+        "media",
+        "resourceType mimeType secureUrl format bytes width height duration",
+      );
 
     if (!post) {
       return res.status(404).json({

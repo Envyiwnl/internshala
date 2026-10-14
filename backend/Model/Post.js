@@ -51,6 +51,12 @@ const PostSchema = new mongoose.Schema(
       },
     ],
 
+    media: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "MediaAsset",
+      default: null,
+    },
+
     likeCount: {
       type: Number,
       default: 0,
