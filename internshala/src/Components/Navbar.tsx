@@ -1,6 +1,6 @@
 import Link from "next/link";
 import LanguageSelector from "./LanguageSelector";
-import { Search, User } from "lucide-react";
+import { Search, User, UsersRound } from "lucide-react";
 import { auth, provider } from "../firebase/firebase";
 import { signInWithPopup, signOut } from "firebase/auth";
 import { toast } from "react-toastify";
@@ -68,6 +68,15 @@ export const Navbar = () => {
                   className="ml-2 bg-transparent focus:outline-none text-sm w-48"
                 />
               </div>
+              {user && (
+                <Link
+                  href="/social"
+                  className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-blue-600 transition-colors hover:bg-blue-50"
+                >
+                  <UsersRound size={17} />
+                  <span>{t("navbar.social")}</span>
+                </Link>
+              )}
             </div>
 
             <div className="flex items-center gap-3">
