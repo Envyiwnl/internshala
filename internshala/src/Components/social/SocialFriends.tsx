@@ -183,6 +183,11 @@ export default function SocialFriends() {
       const data = await response.json();
 
       if (!response.ok) {
+        if (data.error === "SOCIAL_RATE_LIMITED") {
+          toast.error(t("social.rateLimited"));
+          return;
+        }
+
         throw new Error(data.error || "FRIEND_REQUEST_FAILED");
       }
 

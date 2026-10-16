@@ -7,6 +7,7 @@ const Follow = require("../Model/Follow");
 const Notification = require("../Model/Notification");
 
 const verifyFirebaseToken = require("../middleware/verifyFirebaseToken");
+const { relationshipActionLimiter } = require("../middleware/socialRateLimits");
 
 const { ensureUserUsername } = require("../utils/username");
 
@@ -375,113 +376,117 @@ router.get("/users/:username", async (req, res) => {
   }
 });
 
-router.post("/friend-requests/:userId", async (req, res) => {
-  try {
-    const currentUser = await getCurrentUser(req);
-
-    if (!currentUser) {
-      return res.status(404).json({
-        error: "USER_NOT_FOUND",
-      });
-    }
-
-    const { userId } = req.params;
-
-    if (!mongoose.Types.ObjectId.isValid(userId)) {
-      return res.status(400).json({
-        error: "INVALID_USER_ID",
-      });
-    }
-
-    if (currentUser._id.toString() === userId) {
-      return res.status(400).json({
-        error: "CANNOT_FRIEND_YOURSELF",
-      });
-    }
-
-    const targetUser = await User.findById(userId);
-
-    if (!targetUser) {
-      return res.status(404).json({
-        error: "SOCIAL_USER_NOT_FOUND",
-      });
-    }
-
-    const pairKey = buildPairKey(currentUser._id, targetUser._id);
-
+router.post(
+  "/friend-requests/:userId",
+  relationshipActionLimiter,
+  async (req, res) => {
     try {
-      const friendship = await Friendship.create({
-        requester: currentUser._id,
+      const currentUser = await getCurrentUser(req);
 
-        recipient: targetUser._id,
+      if (!currentUser) {
+        return res.status(404).json({
+          error: "USER_NOT_FOUND",
+        });
+      }
 
-        pairKey,
+      const { userId } = req.params;
 
-        status: "pending",
+      if (!mongoose.Types.ObjectId.isValid(userId)) {
+        return res.status(400).json({
+          error: "INVALID_USER_ID",
+        });
+      }
 
-        requestedAt: new Date(),
-      });
+      if (currentUser._id.toString() === userId) {
+        return res.status(400).json({
+          error: "CANNOT_FRIEND_YOURSELF",
+        });
+      }
+
+      const targetUser = await User.findById(userId);
+
+      if (!targetUser) {
+        return res.status(404).json({
+          error: "SOCIAL_USER_NOT_FOUND",
+        });
+      }
+
+      const pairKey = buildPairKey(currentUser._id, targetUser._id);
 
       try {
-        await Notification.create({
+        const friendship = await Friendship.create({
+          requester: currentUser._id,
+
           recipient: targetUser._id,
-          actor: currentUser._id,
-          type: "friend_request",
+
+          pairKey,
+
+          status: "pending",
+
+          requestedAt: new Date(),
         });
-      } catch (notificationError) {
-        console.error(
-          "Friend request notification creation failed:",
-          notificationError,
-        );
+
+        try {
+          await Notification.create({
+            recipient: targetUser._id,
+            actor: currentUser._id,
+            type: "friend_request",
+          });
+        } catch (notificationError) {
+          console.error(
+            "Friend request notification creation failed:",
+            notificationError,
+          );
+        }
+
+        return res.status(201).json({
+          message: "FRIEND_REQUEST_SENT",
+
+          request: {
+            id: friendship._id,
+            status: friendship.status,
+            requestedAt: friendship.requestedAt,
+            recipient: serializeUser(targetUser),
+          },
+        });
+      } catch (error) {
+        if (error?.code !== 11000) {
+          throw error;
+        }
+
+        const existing = await Friendship.findOne({
+          pairKey,
+        });
+
+        if (!existing) {
+          throw error;
+        }
+
+        if (existing.status === "accepted") {
+          return res.status(409).json({
+            error: "ALREADY_FRIENDS",
+          });
+        }
+
+        if (existing.requester.toString() === currentUser._id.toString()) {
+          return res.status(409).json({
+            error: "FRIEND_REQUEST_ALREADY_SENT",
+          });
+        }
+
+        return res.status(409).json({
+          error: "FRIEND_REQUEST_ALREADY_RECEIVED",
+        });
       }
-
-      return res.status(201).json({
-        message: "FRIEND_REQUEST_SENT",
-
-        request: {
-          id: friendship._id,
-          status: friendship.status,
-          requestedAt: friendship.requestedAt,
-          recipient: serializeUser(targetUser),
-        },
-      });
     } catch (error) {
-      if (error?.code !== 11000) {
-        throw error;
-      }
+      console.error("Friend request failed:", error);
 
-      const existing = await Friendship.findOne({
-        pairKey,
-      });
-
-      if (!existing) {
-        throw error;
-      }
-
-      if (existing.status === "accepted") {
-        return res.status(409).json({
-          error: "ALREADY_FRIENDS",
-        });
-      }
-
-      if (existing.requester.toString() === currentUser._id.toString()) {
-        return res.status(409).json({
-          error: "FRIEND_REQUEST_ALREADY_SENT",
-        });
-      }
-
-      return res.status(409).json({
-        error: "FRIEND_REQUEST_ALREADY_RECEIVED",
+      return res.status(500).json({
+        error: "FRIEND_REQUEST_FAILED",
       });
     }
-  } catch (error) {
-    console.error("Friend request failed:", error);
-
-    return res.status(500).json({
-      error: "FRIEND_REQUEST_FAILED",
-    });
-  }
-});
+  },
+);
 
 router.get("/friend-requests", async (req, res) => {
   try {
@@ -854,7 +859,7 @@ router.delete("/friends/:userId", async (req, res) => {
   }
 });
 
-router.post("/follows/:userId", async (req, res) => {
+router.post("/follows/:userId", relationshipActionLimiter, async (req, res) => {
   try {
     const currentUser = await getCurrentUser(req);
 
@@ -934,57 +939,61 @@ router.post("/follows/:userId", async (req, res) => {
   }
 });
 
-router.delete("/follows/:userId", async (req, res) => {
-  try {
-    const currentUser = await getCurrentUser(req);
+router.delete(
+  "/follows/:userId",
+  relationshipActionLimiter,
+  async (req, res) => {
+    try {
+      const currentUser = await getCurrentUser(req);
 
-    if (!currentUser) {
-      return res.status(404).json({
-        error: "USER_NOT_FOUND",
+      if (!currentUser) {
+        return res.status(404).json({
+          error: "USER_NOT_FOUND",
+        });
+      }
+
+      const { userId } = req.params;
+
+      if (!mongoose.Types.ObjectId.isValid(userId)) {
+        return res.status(400).json({
+          error: "INVALID_USER_ID",
+        });
+      }
+
+      const result = await Follow.deleteOne({
+        follower: currentUser._id,
+
+        following: userId,
+      });
+
+      if (!result.deletedCount) {
+        return res.status(404).json({
+          error: "NOT_FOLLOWING",
+        });
+      }
+
+      const [currentCounts, targetCounts] = await Promise.all([
+        syncFollowCounts(currentUser._id),
+
+        syncFollowCounts(userId),
+      ]);
+
+      return res.status(200).json({
+        message: "USER_UNFOLLOWED",
+
+        followingCount: currentCounts.followingCount,
+
+        targetFollowerCount: targetCounts.followerCount,
+      });
+    } catch (error) {
+      console.error("Unfollow user failed:", error);
+
+      return res.status(500).json({
+        error: "UNFOLLOW_USER_FAILED",
       });
     }
-
-    const { userId } = req.params;
-
-    if (!mongoose.Types.ObjectId.isValid(userId)) {
-      return res.status(400).json({
-        error: "INVALID_USER_ID",
-      });
-    }
-
-    const result = await Follow.deleteOne({
-      follower: currentUser._id,
-
-      following: userId,
-    });
-
-    if (!result.deletedCount) {
-      return res.status(404).json({
-        error: "NOT_FOLLOWING",
-      });
-    }
-
-    const [currentCounts, targetCounts] = await Promise.all([
-      syncFollowCounts(currentUser._id),
-
-      syncFollowCounts(userId),
-    ]);
-
-    return res.status(200).json({
-      message: "USER_UNFOLLOWED",
-
-      followingCount: currentCounts.followingCount,
-
-      targetFollowerCount: targetCounts.followerCount,
-    });
-  } catch (error) {
-    console.error("Unfollow user failed:", error);
-
-    return res.status(500).json({
-      error: "UNFOLLOW_USER_FAILED",
-    });
-  }
-});
+  },
+);
 
 router.get("/users/:username/followers", async (req, res) => {
   try {

@@ -3,6 +3,8 @@ import {
   Bookmark,
   Eye,
   Heart,
+  Hash,
+  X,
   Lock,
   MessageCircle,
   Repeat2,
@@ -50,6 +52,8 @@ type FeedPost = {
   hashtags: string[];
   friendCountAtPosting: number;
   editedAt: string | null;
+  mutationWindowMinutes: number;
+  editableUntil: string;
   likeCount: number;
   commentCount: number;
   shareCount: number;
@@ -91,6 +95,7 @@ export default function SocialFeed({ refreshKey }: SocialFeedProps) {
   );
 
   const [currentUserId, setCurrentUserId] = useState("");
+  const [selectedHashtag, setSelectedHashtag] = useState("");
 
   const getToken = async () => {
     await auth.authStateReady();
@@ -143,8 +148,12 @@ export default function SocialFeed({ refreshKey }: SocialFeedProps) {
 
       const idToken = await firebaseUser.getIdToken();
 
+      const hashtagQuery = selectedHashtag
+        ? `&hashtag=${encodeURIComponent(selectedHashtag)}`
+        : "";
+
       const response = await fetch(
-        `${API_URL}/api/feed?limit=${FEED_LIMIT}&offset=${offset}`,
+        `${API_URL}/api/feed?limit=${FEED_LIMIT}&offset=${offset}${hashtagQuery}`,
         {
           headers: {
             Authorization: `Bearer ${idToken}`,
@@ -253,39 +262,73 @@ export default function SocialFeed({ refreshKey }: SocialFeedProps) {
   };
 
   const handleShare = async (post: FeedPost) => {
-    if (post.shared || isActionBusy(post.id, "share")) return;
+    if (isActionBusy(post.id, "share")) return;
 
     setActionBusy(post.id, "share", true);
 
     try {
-      const idToken = await getToken();
+      const postUrl = `${window.location.origin}/social/post/${post.id}`;
 
-      const response = await fetch(`${API_URL}/api/posts/${post.id}/shares`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${idToken}`,
-        },
-      });
+      let shareCompleted = false;
+      let copiedToClipboard = false;
 
-      const data = await response.json();
+      if (navigator.share) {
+        try {
+          await navigator.share({
+            title: t("social.sharePostTitle"),
+            text: post.text.slice(0, 200),
+            url: postUrl,
+          });
 
-      if (!response.ok) {
-        throw new Error(data.error || "POST_SHARE_FAILED");
+          shareCompleted = true;
+        } catch (error) {
+          if (error instanceof DOMException && error.name === "AbortError") {
+            return;
+          }
+
+          throw error;
+        }
+      } else {
+        await navigator.clipboard.writeText(postUrl);
+
+        shareCompleted = true;
+        copiedToClipboard = true;
       }
 
-      setPosts((current) =>
-        current.map((currentPost) =>
-          currentPost.id === post.id
-            ? {
-                ...currentPost,
-                shared: data.shared,
-                shareCount: data.shareCount,
-              }
-            : currentPost,
-        ),
-      );
+      if (!shareCompleted) return;
 
-      toast.success(t("social.postShared"));
+      if (!post.shared) {
+        const idToken = await getToken();
+
+        const response = await fetch(`${API_URL}/api/posts/${post.id}/shares`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${idToken}`,
+          },
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || "POST_SHARE_FAILED");
+        }
+
+        setPosts((current) =>
+          current.map((currentPost) =>
+            currentPost.id === post.id
+              ? {
+                  ...currentPost,
+                  shared: data.shared,
+                  shareCount: data.shareCount,
+                }
+              : currentPost,
+          ),
+        );
+      }
+
+      toast.success(
+        copiedToClipboard ? t("social.postLinkCopied") : t("social.postShared"),
+      );
     } catch (error) {
       console.error("Post share failed:", error);
       toast.error(t("social.shareFailed"));
@@ -331,8 +374,9 @@ export default function SocialFeed({ refreshKey }: SocialFeedProps) {
   };
 
   useEffect(() => {
+    setOpenCommentsPostId(null);
     loadFeed();
-  }, [refreshKey]);
+  }, [refreshKey, selectedHashtag]);
 
   useEffect(() => {
     posts.forEach((post) => {
@@ -401,6 +445,31 @@ export default function SocialFeed({ refreshKey }: SocialFeedProps) {
     }).format(new Date(value));
   };
 
+  const renderPostText = (text: string) => {
+    const parts = text.split(/(#[\p{L}\p{N}_]+)/gu);
+
+    return parts.map((part, index) => {
+      const hashtagMatch = part.match(/^#([\p{L}\p{N}_]+)$/u);
+
+      if (!hashtagMatch) {
+        return <span key={`${part}-${index}`}>{part}</span>;
+      }
+
+      const tag = hashtagMatch[1].toLowerCase();
+
+      return (
+        <button
+          key={`${part}-${index}`}
+          type="button"
+          onClick={() => setSelectedHashtag(tag)}
+          className="font-medium text-blue-600 hover:underline"
+        >
+          {part}
+        </button>
+      );
+    });
+  };
+
   if (loading) {
     return (
       <div className="rounded-2xl border border-gray-200 bg-white p-8 text-center shadow-sm">
@@ -427,20 +496,79 @@ export default function SocialFeed({ refreshKey }: SocialFeedProps) {
 
   if (!posts.length) {
     return (
-      <div className="rounded-2xl border border-gray-200 bg-white p-8 text-center shadow-sm">
-        <UsersRound className="mx-auto h-9 w-9 text-gray-300" />
+      <div className="space-y-4">
+        {selectedHashtag && (
+          <div className="flex items-center justify-between gap-3 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3">
+            <div className="flex min-w-0 items-center gap-2">
+              <Hash size={17} className="shrink-0 text-blue-600" />
 
-        <h2 className="mt-3 text-base font-semibold text-gray-800">
-          {t("social.feedTitle")}
-        </h2>
+              <p className="truncate text-sm font-medium text-blue-700">
+                {t("social.hashtagResults", {
+                  tag: selectedHashtag,
+                })}
+              </p>
+            </div>
 
-        <p className="mt-1 text-sm text-gray-500">{t("social.noFeedPosts")}</p>
+            <button
+              type="button"
+              onClick={() => setSelectedHashtag("")}
+              aria-label={t("social.clearHashtag")}
+              title={t("social.clearHashtag")}
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-blue-500 transition hover:bg-blue-100 hover:text-blue-700"
+            >
+              <X size={16} />
+            </button>
+          </div>
+        )}
+
+        <div className="rounded-2xl border border-gray-200 bg-white p-8 text-center shadow-sm">
+          {selectedHashtag ? (
+            <Hash className="mx-auto h-9 w-9 text-gray-300" />
+          ) : (
+            <UsersRound className="mx-auto h-9 w-9 text-gray-300" />
+          )}
+
+          <h2 className="mt-3 text-base font-semibold text-gray-800">
+            {selectedHashtag ? `#${selectedHashtag}` : t("social.feedTitle")}
+          </h2>
+
+          <p className="mt-1 text-sm text-gray-500">
+            {selectedHashtag
+              ? t("social.noHashtagPosts", {
+                  tag: selectedHashtag,
+                })
+              : t("social.noFeedPosts")}
+          </p>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="space-y-5">
+      {selectedHashtag && (
+        <div className="flex items-center justify-between gap-3 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3">
+          <div className="flex min-w-0 items-center gap-2">
+            <Hash size={17} className="shrink-0 text-blue-600" />
+
+            <p className="truncate text-sm font-medium text-blue-700">
+              {t("social.hashtagResults", {
+                tag: selectedHashtag,
+              })}
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setSelectedHashtag("")}
+            aria-label={t("social.clearHashtag")}
+            title={t("social.clearHashtag")}
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-blue-500 transition hover:bg-blue-100 hover:text-blue-700"
+          >
+            <X size={16} />
+          </button>
+        </div>
+      )}
       {posts.map((post) => {
         const privacyDetails = getPrivacyDetails(post.privacy);
         const PrivacyIcon = privacyDetails.Icon;
@@ -497,7 +625,9 @@ export default function SocialFeed({ refreshKey }: SocialFeedProps) {
                     postId={post.id}
                     text={post.text}
                     privacy={post.privacy}
-                    createdAt={post.createdAt}
+                    editableUntil={post.editableUntil}
+                    mutationWindowMinutes={post.mutationWindowMinutes}
+                    hasMedia={Boolean(post.media)}
                     isOwnPost={post.author.id === currentUserId}
                     onPostUpdated={(updatedPost) =>
                       setPosts((current) =>
@@ -529,7 +659,7 @@ export default function SocialFeed({ refreshKey }: SocialFeedProps) {
               </div>
 
               <p className="mt-4 whitespace-pre-wrap break-words text-sm leading-6 text-gray-800">
-                {post.text}
+                {renderPostText(post.text)}
               </p>
             </div>
 
@@ -591,7 +721,7 @@ export default function SocialFeed({ refreshKey }: SocialFeedProps) {
 
                 <button
                   type="button"
-                  disabled={post.shared || isActionBusy(post.id, "share")}
+                  disabled={isActionBusy(post.id, "share")}
                   onClick={() => handleShare(post)}
                   aria-label={t("social.sharePost")}
                   className={`flex items-center gap-1.5 rounded-lg px-2 py-1.5 transition hover:bg-gray-100 disabled:cursor-default ${

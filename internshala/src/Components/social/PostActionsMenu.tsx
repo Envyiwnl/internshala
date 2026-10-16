@@ -5,7 +5,6 @@ import { toast } from "react-toastify";
 import { useTranslation } from "react-i18next";
 
 const API_URL = "https://internshala-78tb.onrender.com";
-const POST_MUTATION_WINDOW_MS = 30 * 60 * 1000;
 
 type Privacy = "public" | "friends" | "followers" | "private";
 
@@ -27,8 +26,10 @@ type PostActionsMenuProps = {
   postId: string;
   text: string;
   privacy: Privacy;
-  createdAt: string;
+  editableUntil: string;
+  mutationWindowMinutes: number;
   isOwnPost: boolean;
+  hasMedia: boolean;
   onPostUpdated: (post: UpdatedPost) => void;
   onPostDeleted: (postId: string) => void;
 };
@@ -37,10 +38,12 @@ export default function PostActionsMenu({
   postId,
   text,
   privacy,
-  createdAt,
+  editableUntil,
+  mutationWindowMinutes,
   isOwnPost,
   onPostUpdated,
   onPostDeleted,
+  hasMedia,
 }: PostActionsMenuProps) {
   const { t } = useTranslation();
 
@@ -59,8 +62,31 @@ export default function PostActionsMenu({
 
   const [busy, setBusy] = useState(false);
 
-  const canMutate =
-    Date.now() - new Date(createdAt).getTime() <= POST_MUTATION_WINDOW_MS;
+  const [canMutate, setCanMutate] = useState(
+    () => Date.now() <= new Date(editableUntil).getTime(),
+  );
+
+  useEffect(() => {
+    const deadline = new Date(editableUntil).getTime();
+
+    const updateMutationState = () => {
+      setCanMutate(Date.now() <= deadline);
+    };
+
+    updateMutationState();
+
+    const remaining = deadline - Date.now();
+
+    if (remaining <= 0) return;
+
+    const timer = window.setTimeout(() => {
+      setCanMutate(false);
+    }, remaining + 100);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [editableUntil]);
 
   useEffect(() => {
     const handleOutsideClick = (event: MouseEvent) => {
@@ -98,7 +124,7 @@ export default function PostActionsMenu({
   const handleEdit = async () => {
     const trimmedText = editText.trim();
 
-    if (!trimmedText || busy) return;
+    if ((!trimmedText && !hasMedia) || busy) return;
 
     try {
       setBusy(true);
@@ -121,7 +147,11 @@ export default function PostActionsMenu({
 
       if (!response.ok) {
         if (data.error === "POST_EDIT_WINDOW_EXPIRED") {
-          toast.error(t("social.postEditWindowExpired"));
+          toast.error(
+            t("social.postEditWindowExpired", {
+              minutes: mutationWindowMinutes,
+            }),
+          );
           return;
         }
 
@@ -169,7 +199,11 @@ export default function PostActionsMenu({
 
       if (!response.ok) {
         if (data.error === "POST_DELETE_WINDOW_EXPIRED") {
-          toast.error(t("social.postDeleteWindowExpired"));
+          toast.error(
+            t("social.postDeleteWindowExpired", {
+              minutes: mutationWindowMinutes,
+            }),
+          );
           return;
         }
 
@@ -211,6 +245,11 @@ export default function PostActionsMenu({
       const data = await response.json();
 
       if (!response.ok) {
+        if (data.error === "SOCIAL_RATE_LIMITED") {
+          toast.error(t("social.rateLimited"));
+          return;
+        }
+
         throw new Error(data.error || "POST_REPORT_FAILED");
       }
 
@@ -316,7 +355,11 @@ export default function PostActionsMenu({
               />
 
               <div className="flex items-center justify-between text-xs text-gray-400">
-                <span>{t("social.postEditTimeNotice")}</span>
+                <span>
+                  {t("social.postEditTimeNotice", {
+                    minutes: mutationWindowMinutes,
+                  })}
+                </span>
 
                 <span>{editText.length}/3000</span>
               </div>
@@ -353,7 +396,7 @@ export default function PostActionsMenu({
 
               <button
                 type="button"
-                disabled={!editText.trim() || busy}
+                disabled={(!editText.trim() && !hasMedia) || busy}
                 onClick={handleEdit}
                 className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-300"
               >

@@ -187,6 +187,10 @@ export default function SocialFollowing() {
       const data = await response.json();
 
       if (!response.ok) {
+        if (data.error === "SOCIAL_RATE_LIMITED") {
+          toast.error(t("social.rateLimited"));
+          return;
+        }
         if (data.error === "ALREADY_FOLLOWING") {
           setUsers((current) =>
             current.map((currentUser) =>
@@ -245,6 +249,11 @@ export default function SocialFollowing() {
       const data = await response.json();
 
       if (!response.ok) {
+        if (data.error === "SOCIAL_RATE_LIMITED") {
+          toast.error(t("social.rateLimited"));
+          return;
+        }
+
         throw new Error(data.error || "UNFOLLOW_USER_FAILED");
       }
 

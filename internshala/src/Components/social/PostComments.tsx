@@ -113,6 +113,11 @@ export default function PostComments({
       const data = await response.json();
 
       if (!response.ok) {
+        if (data.error === "SOCIAL_RATE_LIMITED") {
+          toast.error(t("social.rateLimited"));
+          return;
+        }
+
         throw new Error(data.error || "COMMENT_CREATE_FAILED");
       }
 

@@ -14,10 +14,20 @@ const PostView = require("../Model/PostView");
 const PostReport = require("../Model/PostReport");
 const Notification = require("../Model/Notification");
 const MediaAsset = require("../Model/MediaAsset");
+const {
+  POST_MUTATION_WINDOW_MINUTES,
+  POST_MUTATION_WINDOW_MS,
+  getPostMutationDeadline,
+} = require("../config/socialConfig");
 
 const cloudinary = require("../config/cloudinary");
 
 const verifyFirebaseToken = require("../middleware/verifyFirebaseToken");
+const {
+  postCreationLimiter,
+  commentCreationLimiter,
+  reportCreationLimiter,
+} = require("../middleware/socialRateLimits");
 
 const { reservePostQuota, releasePostQuota } = require("../utils/postQuota");
 
@@ -26,7 +36,6 @@ const router = express.Router();
 router.use(verifyFirebaseToken);
 
 const ALLOWED_PRIVACY = new Set(["public", "friends", "followers", "private"]);
-const POST_MUTATION_WINDOW_MS = 30 * 60 * 1000;
 const MAX_POST_TEXT_LENGTH = 3000;
 const DUPLICATE_POST_WINDOW_MS = 10 * 60 * 1000;
 const ALLOWED_REPORT_REASONS = new Set([
@@ -83,13 +92,13 @@ const resolveMentionUserIds = async (usernames) => {
   return users.map((user) => user._id);
 };
 
-const validatePostText = (value) => {
+const validatePostText = (value, { required = true } = {}) => {
   const text = normalizePostText(value);
 
-  if (!text) {
+  if (!text && required) {
     return {
       valid: false,
-      error: "POST_TEXT_REQUIRED",
+      error: "POST_CONTENT_REQUIRED",
     };
   }
 
@@ -155,6 +164,8 @@ const serializePost = (post, author, media = post.media) => {
     media: serializeMedia(media),
     friendCountAtPosting: post.friendCountAtPosting,
     editedAt: post.editedAt,
+    mutationWindowMinutes: POST_MUTATION_WINDOW_MINUTES,
+    editableUntil: getPostMutationDeadline(post.createdAt),
     likeCount: post.likeCount || 0,
     commentCount: post.commentCount || 0,
     shareCount: post.shareCount || 0,
@@ -222,7 +233,7 @@ const canViewPost = async ({ post, currentUserId }) => {
   return false;
 };
 
-router.post("/", async (req, res) => {
+router.post("/", postCreationLimiter, async (req, res) => {
   let reservedQuota = null;
   let quotaUserId = null;
   let postCreated = false;
@@ -262,7 +273,9 @@ router.post("/", async (req, res) => {
       }
     }
 
-    const textValidation = validatePostText(req.body?.text);
+    const textValidation = validatePostText(req.body?.text, {
+      required: !mediaAsset,
+    });
 
     if (!textValidation.valid) {
       return res.status(400).json({
@@ -272,9 +285,9 @@ router.post("/", async (req, res) => {
     }
 
     const text = textValidation.text;
-    const contentHash = buildContentHash(text);
-    const hashtags = extractHashtags(text);
-    const mentionUsernames = extractMentionUsernames(text);
+    const contentHash = text ? buildContentHash(text) : null;
+    const hashtags = text ? extractHashtags(text) : [];
+    const mentionUsernames = text ? extractMentionUsernames(text) : [];
     const mentionUserIds = await resolveMentionUserIds(mentionUsernames);
 
     const privacy =
@@ -295,19 +308,20 @@ router.post("/", async (req, res) => {
     const duplicateWindowStart = new Date(
       Date.now() - DUPLICATE_POST_WINDOW_MS,
     );
-
-    const duplicatePost = await Post.exists({
-      author: currentUser._id,
-      contentHash,
-      createdAt: {
-        $gte: duplicateWindowStart,
-      },
-    });
-
-    if (duplicatePost) {
-      return res.status(409).json({
-        error: "DUPLICATE_POST",
+    if (contentHash) {
+      const duplicatePost = await Post.exists({
+        author: currentUser._id,
+        contentHash,
+        createdAt: {
+          $gte: duplicateWindowStart,
+        },
       });
+
+      if (duplicatePost) {
+        return res.status(409).json({
+          error: "DUPLICATE_POST",
+        });
+      }
     }
 
     reservedQuota = await reservePostQuota({
@@ -609,7 +623,9 @@ router.put("/:postId", async (req, res) => {
     }
 
     if (hasText) {
-      const textValidation = validatePostText(body.text);
+      const textValidation = validatePostText(body.text, {
+        required: !post.media,
+      });
 
       if (!textValidation.valid) {
         return res.status(400).json({
@@ -619,33 +635,32 @@ router.put("/:postId", async (req, res) => {
       }
 
       const text = textValidation.text;
-      const contentHash = buildContentHash(text);
-      const hashtags = extractHashtags(text);
-      const mentionUsernames = extractMentionUsernames(text);
+      const contentHash = text ? buildContentHash(text) : null;
+      const hashtags = text ? extractHashtags(text) : [];
+      const mentionUsernames = text ? extractMentionUsernames(text) : [];
       const mentionUserIds = await resolveMentionUserIds(mentionUsernames);
 
       const duplicateWindowStart = new Date(
         Date.now() - DUPLICATE_POST_WINDOW_MS,
       );
 
-      const duplicatePost = await Post.exists({
-        _id: {
-          $ne: post._id,
-        },
-
-        author: currentUser._id,
-
-        contentHash,
-
-        createdAt: {
-          $gte: duplicateWindowStart,
-        },
-      });
-
-      if (duplicatePost) {
-        return res.status(409).json({
-          error: "DUPLICATE_POST",
+      if (contentHash) {
+        const duplicatePost = await Post.exists({
+          _id: {
+            $ne: post._id,
+          },
+          author: currentUser._id,
+          contentHash,
+          createdAt: {
+            $gte: duplicateWindowStart,
+          },
         });
+
+        if (duplicatePost) {
+          return res.status(409).json({
+            error: "DUPLICATE_POST",
+          });
+        }
       }
 
       post.text = text;
@@ -1097,7 +1112,7 @@ router.delete("/:postId/likes", async (req, res) => {
   }
 });
 
-router.post("/:postId/comments", async (req, res) => {
+router.post("/:postId/comments", commentCreationLimiter, async (req, res) => {
   let createdComment = null;
 
   try {
@@ -2028,7 +2043,7 @@ router.post("/:postId/views", async (req, res) => {
   }
 });
 
-router.post("/:postId/reports", async (req, res) => {
+router.post("/:postId/reports", reportCreationLimiter, async (req, res) => {
   let createdReport = null;
 
   try {

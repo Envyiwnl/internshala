@@ -5,6 +5,7 @@ const User = require("../Model/User");
 const MediaAsset = require("../Model/MediaAsset");
 
 const verifyFirebaseToken = require("../middleware/verifyFirebaseToken");
+const { mediaUploadLimiter } = require("../middleware/socialRateLimits");
 const uploadPostMedia = require("../middleware/uploadPostMedia");
 
 const { buildMediaHash } = require("../utils/mediaHash");
@@ -51,129 +52,134 @@ const handleMediaUpload = (req, res, next) => {
   });
 };
 
-router.post("/upload", handleMediaUpload, async (req, res) => {
-  let uploadedCloudinaryAsset = null;
-
-  try {
-    const currentUser = await getCurrentUser(req);
-
-    if (!currentUser) {
-      return res.status(404).json({
-        error: "USER_NOT_FOUND",
-      });
-    }
-
-    const validation = validateMediaFile(req.file);
-
-    if (!validation.valid) {
-      return res.status(400).json({
-        error: validation.error,
-        ...(validation.maxBytes
-          ? {
-              maxBytes: validation.maxBytes,
-            }
-          : {}),
-      });
-    }
-
-    const contentHash = buildMediaHash(req.file.buffer);
-
-    const duplicateAsset = await MediaAsset.findOne({
-      uploader: currentUser._id,
-      contentHash,
-    }).select(
-      "_id post resourceType mimeType secureUrl format bytes width height duration createdAt",
-    );
-
-    if (duplicateAsset) {
-      if (duplicateAsset.post) {
-        return res.status(409).json({
-          error: "DUPLICATE_MEDIA",
-        });
-      }
-
-      return res.status(200).json({
-        message: "MEDIA_ALREADY_UPLOADED",
-        media: {
-          id: duplicateAsset._id.toString(),
-          resourceType: duplicateAsset.resourceType,
-          mimeType: duplicateAsset.mimeType,
-          url: duplicateAsset.secureUrl,
-          format: duplicateAsset.format || "",
-          bytes: duplicateAsset.bytes || 0,
-          width: duplicateAsset.width ?? null,
-          height: duplicateAsset.height ?? null,
-          duration: duplicateAsset.duration ?? null,
-          createdAt: duplicateAsset.createdAt,
-        },
-      });
-    }
-
-    uploadedCloudinaryAsset = await uploadMediaToCloudinary({
-      buffer: req.file.buffer,
-      resourceType: validation.resourceType,
-    });
-
-    let mediaAsset;
+router.post(
+  "/upload",
+  mediaUploadLimiter,
+  handleMediaUpload,
+  async (req, res) => {
+    let uploadedCloudinaryAsset = null;
 
     try {
-      mediaAsset = await MediaAsset.create({
+      const currentUser = await getCurrentUser(req);
+
+      if (!currentUser) {
+        return res.status(404).json({
+          error: "USER_NOT_FOUND",
+        });
+      }
+
+      const validation = validateMediaFile(req.file);
+
+      if (!validation.valid) {
+        return res.status(400).json({
+          error: validation.error,
+          ...(validation.maxBytes
+            ? {
+                maxBytes: validation.maxBytes,
+              }
+            : {}),
+        });
+      }
+
+      const contentHash = buildMediaHash(req.file.buffer);
+
+      const duplicateAsset = await MediaAsset.findOne({
         uploader: currentUser._id,
-        resourceType: validation.resourceType,
-        mimeType: req.file.mimetype,
         contentHash,
-        cloudinaryPublicId: uploadedCloudinaryAsset.public_id,
-        secureUrl: uploadedCloudinaryAsset.secure_url,
-        format: uploadedCloudinaryAsset.format || "",
-        bytes: uploadedCloudinaryAsset.bytes || req.file.size,
-        width: uploadedCloudinaryAsset.width || null,
-        height: uploadedCloudinaryAsset.height || null,
-        duration:
-          validation.resourceType === "video"
-            ? uploadedCloudinaryAsset.duration || null
-            : null,
+      }).select(
+        "_id post resourceType mimeType secureUrl format bytes width height duration createdAt",
+      );
+
+      if (duplicateAsset) {
+        if (duplicateAsset.post) {
+          return res.status(409).json({
+            error: "DUPLICATE_MEDIA",
+          });
+        }
+
+        return res.status(200).json({
+          message: "MEDIA_ALREADY_UPLOADED",
+          media: {
+            id: duplicateAsset._id.toString(),
+            resourceType: duplicateAsset.resourceType,
+            mimeType: duplicateAsset.mimeType,
+            url: duplicateAsset.secureUrl,
+            format: duplicateAsset.format || "",
+            bytes: duplicateAsset.bytes || 0,
+            width: duplicateAsset.width ?? null,
+            height: duplicateAsset.height ?? null,
+            duration: duplicateAsset.duration ?? null,
+            createdAt: duplicateAsset.createdAt,
+          },
+        });
+      }
+
+      uploadedCloudinaryAsset = await uploadMediaToCloudinary({
+        buffer: req.file.buffer,
+        resourceType: validation.resourceType,
+      });
+
+      let mediaAsset;
+
+      try {
+        mediaAsset = await MediaAsset.create({
+          uploader: currentUser._id,
+          resourceType: validation.resourceType,
+          mimeType: req.file.mimetype,
+          contentHash,
+          cloudinaryPublicId: uploadedCloudinaryAsset.public_id,
+          secureUrl: uploadedCloudinaryAsset.secure_url,
+          format: uploadedCloudinaryAsset.format || "",
+          bytes: uploadedCloudinaryAsset.bytes || req.file.size,
+          width: uploadedCloudinaryAsset.width || null,
+          height: uploadedCloudinaryAsset.height || null,
+          duration:
+            validation.resourceType === "video"
+              ? uploadedCloudinaryAsset.duration || null
+              : null,
+        });
+      } catch (error) {
+        try {
+          await cloudinary.uploader.destroy(uploadedCloudinaryAsset.public_id, {
+            resource_type: validation.resourceType,
+          });
+        } catch (cleanupError) {
+          console.error("Cloudinary rollback failed:", cleanupError);
+        }
+
+        if (error?.code === 11000) {
+          return res.status(409).json({
+            error: "DUPLICATE_MEDIA",
+          });
+        }
+
+        throw error;
+      }
+
+      return res.status(201).json({
+        message: "MEDIA_UPLOADED",
+        media: {
+          id: mediaAsset._id.toString(),
+          resourceType: mediaAsset.resourceType,
+          mimeType: mediaAsset.mimeType,
+          url: mediaAsset.secureUrl,
+          format: mediaAsset.format,
+          bytes: mediaAsset.bytes,
+          width: mediaAsset.width,
+          height: mediaAsset.height,
+          duration: mediaAsset.duration,
+          createdAt: mediaAsset.createdAt,
+        },
       });
     } catch (error) {
-      try {
-        await cloudinary.uploader.destroy(uploadedCloudinaryAsset.public_id, {
-          resource_type: validation.resourceType,
-        });
-      } catch (cleanupError) {
-        console.error("Cloudinary rollback failed:", cleanupError);
-      }
+      console.error("Media upload failed:", error);
 
-      if (error?.code === 11000) {
-        return res.status(409).json({
-          error: "DUPLICATE_MEDIA",
-        });
-      }
-
-      throw error;
+      return res.status(500).json({
+        error: "MEDIA_UPLOAD_FAILED",
+      });
     }
-
-    return res.status(201).json({
-      message: "MEDIA_UPLOADED",
-      media: {
-        id: mediaAsset._id.toString(),
-        resourceType: mediaAsset.resourceType,
-        mimeType: mediaAsset.mimeType,
-        url: mediaAsset.secureUrl,
-        format: mediaAsset.format,
-        bytes: mediaAsset.bytes,
-        width: mediaAsset.width,
-        height: mediaAsset.height,
-        duration: mediaAsset.duration,
-        createdAt: mediaAsset.createdAt,
-      },
-    });
-  } catch (error) {
-    console.error("Media upload failed:", error);
-
-    return res.status(500).json({
-      error: "MEDIA_UPLOAD_FAILED",
-    });
-  }
-});
+  },
+);
 
 router.delete("/:mediaId", async (req, res) => {
   try {

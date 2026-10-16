@@ -108,7 +108,7 @@ export default function CreatePostComposer({
   const handleCreatePost = async () => {
     const trimmedText = text.trim();
 
-    if (!trimmedText || isPosting) return;
+    if ((!trimmedText && !mediaFile) || isPosting) return;
 
     const firebaseUser = auth.currentUser;
 
@@ -203,6 +203,8 @@ export default function CreatePostComposer({
         UNSUPPORTED_MEDIA_TYPE: t("social.unsupportedMedia"),
         MEDIA_UPLOAD_FAILED: t("social.mediaUploadFailed"),
         POST_CREATE_FAILED: t("social.postCreateFailed"),
+        POST_CONTENT_REQUIRED: t("social.postContentRequired"),
+        SOCIAL_RATE_LIMITED: t("social.rateLimited"),
       };
 
       toast.error(errorMessages[errorCode] || t("social.postCreateFailed"));
@@ -341,7 +343,7 @@ export default function CreatePostComposer({
         <button
           type="button"
           onClick={handleCreatePost}
-          disabled={!text.trim() || isPosting}
+          disabled={(!text.trim() && !mediaFile) || isPosting}
           className="rounded-lg bg-blue-600 px-6 py-2 text-sm font-medium text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-300"
         >
           {isPosting ? t("social.posting") : t("social.createPost")}

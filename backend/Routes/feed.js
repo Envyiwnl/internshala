@@ -8,6 +8,11 @@ const PostLike = require("../Model/PostLike");
 const PostSave = require("../Model/PostSave");
 const PostShare = require("../Model/PostShare");
 
+const {
+  POST_MUTATION_WINDOW_MINUTES,
+  getPostMutationDeadline,
+} = require("../config/socialConfig");
+
 const verifyFirebaseToken = require("../middleware/verifyFirebaseToken");
 
 const router = express.Router();
@@ -59,6 +64,8 @@ const serializePost = (post, interactionState = {}) => {
     hashtags: post.hashtags || [],
     friendCountAtPosting: post.friendCountAtPosting,
     editedAt: post.editedAt,
+    mutationWindowMinutes: POST_MUTATION_WINDOW_MINUTES,
+    editableUntil: getPostMutationDeadline(post.createdAt),
     likeCount: post.likeCount || 0,
     commentCount: post.commentCount || 0,
     shareCount: post.shareCount || 0,
@@ -144,6 +151,21 @@ router.get("/", async (req, res) => {
     const requestedOffset = Number(req.query.offset) || 0;
     const offset = Math.max(Math.floor(requestedOffset), 0);
 
+    const rawHashtag =
+      typeof req.query.hashtag === "string"
+        ? req.query.hashtag.trim().replace(/^#/, "")
+        : "";
+
+    const hashtag = rawHashtag
+      ? rawHashtag.normalize("NFKC").toLowerCase()
+      : "";
+
+    if (hashtag && !/^[\p{L}\p{N}_]+$/u.test(hashtag)) {
+      return res.status(400).json({
+        error: "INVALID_HASHTAG",
+      });
+    }
+
     const [friendships, following] = await Promise.all([
       Friendship.find({
         status: "accepted",
@@ -197,6 +219,14 @@ router.get("/", async (req, res) => {
     }
 
     const candidateLimit = 500;
+
+    const postFilter = {
+      $or: visibilityConditions,
+    };
+
+    if (hashtag) {
+      postFilter.hashtags = hashtag;
+    }
 
     const candidates = await Post.find({
       $or: visibilityConditions,

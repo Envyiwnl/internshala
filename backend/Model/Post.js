@@ -11,7 +11,7 @@ const PostSchema = new mongoose.Schema(
 
     text: {
       type: String,
-      required: true,
+      default: "",
       trim: true,
     },
 
@@ -30,7 +30,7 @@ const PostSchema = new mongoose.Schema(
 
     contentHash: {
       type: String,
-      required: true,
+      default: null,
       select: false,
     },
 
