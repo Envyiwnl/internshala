@@ -30,7 +30,7 @@ const {
 } = require("../middleware/socialRateLimits");
 
 const { reservePostQuota, releasePostQuota } = require("../utils/postQuota");
-const { validateSocialContent } = require("../utils/socialContentValidation");
+const { validateSocialContent } = require("../utils/ContentValidation");
 
 const router = express.Router();
 
