@@ -196,7 +196,8 @@
     "postEditTimeNotice": "帖子只能在发布后的 {{minutes}} 分钟内编辑。",
     "postEditWindowExpired": "{{minutes}} 分钟的编辑期限已结束。",
     "postDeleteWindowExpired": "{{minutes}} 分钟的删除期限已结束。",
-    "rateLimited": "操作过于频繁，请稍后再试。"
+    "rateLimited": "操作过于频繁，请稍后再试。",
+    "contentRejected": "此内容无法发布，因为它可能违反社区准则。"
   },
   "common": {
     "loading": "加载中...",

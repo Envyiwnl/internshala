@@ -155,6 +155,11 @@ export default function PostActionsMenu({
           return;
         }
 
+        if (data.error === "CONTENT_REJECTED") {
+          toast.error(t("social.contentRejected"));
+          return;
+        }
+
         if (data.error === "DUPLICATE_POST") {
           toast.error(t("social.duplicatePost"));
           return;

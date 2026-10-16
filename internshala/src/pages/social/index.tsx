@@ -138,7 +138,11 @@ export default function SocialPage() {
                 <button
                   type="button"
                   onClick={() => setActiveSection("following")}
-                  className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm text-gray-700 transition hover:bg-gray-50"
+                  className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition ${
+                    activeSection === "following"
+                      ? "bg-blue-50 font-medium text-blue-600"
+                      : "text-gray-700 hover:bg-gray-50"
+                  }`}
                 >
                   <UserRoundPlus size={18} className="text-blue-600" />
                   {t("social.following")}

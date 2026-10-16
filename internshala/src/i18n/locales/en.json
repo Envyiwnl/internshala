@@ -195,7 +195,8 @@
     "postEditTimeNotice": "Posts can only be edited within {{minutes}} minutes.",
     "postEditWindowExpired": "The {{minutes}}-minute editing period has expired.",
     "postDeleteWindowExpired": "The {{minutes}}-minute deletion period has expired.",
-    "rateLimited": "You're doing that too quickly. Please try again shortly."
+    "rateLimited": "You're doing that too quickly. Please try again shortly.",
+    "contentRejected": "This content could not be posted because it may violate the community guidelines."
   },
   "common": {
     "loading": "Loading...",

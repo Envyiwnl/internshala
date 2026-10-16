@@ -205,6 +205,7 @@ export default function CreatePostComposer({
         POST_CREATE_FAILED: t("social.postCreateFailed"),
         POST_CONTENT_REQUIRED: t("social.postContentRequired"),
         SOCIAL_RATE_LIMITED: t("social.rateLimited"),
+        CONTENT_REJECTED: t("social.contentRejected"),
       };
 
       toast.error(errorMessages[errorCode] || t("social.postCreateFailed"));

@@ -187,7 +187,17 @@
     "postEditTimeNotice": "As publicações só podem ser editadas por {{minutes}} minutos.",
     "postEditWindowExpired": "O período de edição de {{minutes}} minutos expirou.",
     "postDeleteWindowExpired": "O período de exclusão de {{minutes}} minutos expirou.",
-    "rateLimited": "Você está fazendo isso rápido demais. Tente novamente em instantes."
+    "rateLimited": "Você está fazendo isso rápido demais. Tente novamente em instantes.",
+    "sharePostTitle": "Confira esta publicação",
+    "postLinkCopied": "Link da publicação copiado.",
+    "sharedPostLoadFailed": "Não foi possível carregar esta publicação.",
+    "sharedPostNotFound": "Esta publicação não foi encontrada.",
+    "sharedPostAccessDenied": "Você não tem permissão para ver esta publicação.",
+    "backToPublicSpace": "Voltar ao Espaço público",
+    "likesLabel": "curtidas",
+    "commentsLabel": "comentários",
+    "sharesLabel": "compartilhamentos",
+    "contentRejected": "Este conteúdo não pôde ser publicado porque pode violar as diretrizes da comunidade."
   },
   "common": {
     "loading": "Carregando...",

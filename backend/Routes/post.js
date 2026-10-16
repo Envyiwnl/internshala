@@ -30,6 +30,7 @@ const {
 } = require("../middleware/socialRateLimits");
 
 const { reservePostQuota, releasePostQuota } = require("../utils/postQuota");
+const { validateSocialContent } = require("../utils/socialContentValidation");
 
 const router = express.Router();
 
@@ -107,6 +108,12 @@ const validatePostText = (value, { required = true } = {}) => {
       valid: false,
       error: "POST_TEXT_TOO_LONG",
     };
+  }
+
+  const contentValidation = validateSocialContent(text);
+
+  if (!contentValidation.valid) {
+    return contentValidation;
   }
 
   return {
@@ -1159,6 +1166,14 @@ router.post("/:postId/comments", commentCreationLimiter, async (req, res) => {
       });
     }
 
+    const contentValidation = validateSocialContent(text);
+
+    if (!contentValidation.valid) {
+      return res.status(422).json({
+        error: contentValidation.error,
+      });
+    }
+
     createdComment = await PostComment.create({
       post: post._id,
       author: currentUser._id,
@@ -1346,6 +1361,14 @@ router.put("/:postId/comments/:commentId", async (req, res) => {
     if (!text) {
       return res.status(400).json({
         error: "COMMENT_TEXT_REQUIRED",
+      });
+    }
+
+    const contentValidation = validateSocialContent(text);
+
+    if (!contentValidation.valid) {
+      return res.status(422).json({
+        error: contentValidation.error,
       });
     }
 

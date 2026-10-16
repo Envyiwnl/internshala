@@ -73,7 +73,9 @@ export default function SharedPostPage() {
         const firebaseUser = auth.currentUser;
 
         if (!firebaseUser) {
-          router.replace("/auth");
+          const redirect = encodeURIComponent(router.asPath);
+
+          router.replace(`/auth?redirect=${redirect}`);
           return;
         }
 

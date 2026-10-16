@@ -86,6 +86,20 @@ export default function AuthPage() {
     }
   }, [router.isReady, router.query.mode]);
 
+  const getRedirectPath = () => {
+    const redirect = router.query.redirect;
+
+    if (
+      typeof redirect === "string" &&
+      redirect.startsWith("/") &&
+      !redirect.startsWith("//")
+    ) {
+      return redirect;
+    }
+
+    return "/";
+  };
+
   const handleModeChange = (newMode: AuthMode) => {
     setMode(newMode);
     setError("");
@@ -288,7 +302,7 @@ export default function AuthPage() {
         return;
       }
 
-      await router.replace("/");
+      await router.replace(getRedirectPath());
     } catch (authError: any) {
       console.error("Email login failed:", authError);
 
@@ -351,7 +365,7 @@ export default function AuthPage() {
         return;
       }
 
-      await router.replace("/");
+      await router.replace(getRedirectPath());
     } catch (authError: any) {
       console.error("Email signup failed:", authError);
 

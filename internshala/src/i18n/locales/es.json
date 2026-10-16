@@ -195,7 +195,8 @@
     "postEditTimeNotice": "Las publicaciones solo se pueden editar durante {{minutes}} minutos.",
     "postEditWindowExpired": "El período de edición de {{minutes}} minutos ha expirado.",
     "postDeleteWindowExpired": "El período de eliminación de {{minutes}} minutos ha expirado.",
-    "rateLimited": "Estás haciendo esto demasiado rápido. Inténtalo de nuevo en breve."
+    "rateLimited": "Estás haciendo esto demasiado rápido. Inténtalo de nuevo en breve.",
+    "contentRejected": "Este contenido no se pudo publicar porque puede infringir las normas de la comunidad."
   },
   "common": {
     "loading": "Cargando...",

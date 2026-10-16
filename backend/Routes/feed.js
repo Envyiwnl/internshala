@@ -136,6 +136,20 @@ const calculateFeedScore = ({
   return score;
 };
 
+const getFeedTier = ({ post, currentUserId, friendIdSet }) => {
+  const authorId = post.author._id
+    ? post.author._id.toString()
+    : post.author.toString();
+
+  const currentUserIdString = currentUserId.toString();
+
+  if (authorId === currentUserIdString || friendIdSet.has(authorId)) {
+    return 0;
+  }
+
+  return 1;
+};
+
 router.get("/", async (req, res) => {
   try {
     const currentUser = await getCurrentUser(req);
@@ -228,9 +242,7 @@ router.get("/", async (req, res) => {
       postFilter.hashtags = hashtag;
     }
 
-    const candidates = await Post.find({
-      $or: visibilityConditions,
-    })
+    const candidates = await Post.find(postFilter)
       .populate("author", "username name photo")
       .populate(
         "media",
@@ -244,6 +256,13 @@ router.get("/", async (req, res) => {
     const rankedCandidates = candidates
       .map((post) => ({
         post,
+
+        tier: getFeedTier({
+          post,
+          currentUserId: currentUser._id,
+          friendIdSet,
+        }),
+
         score: calculateFeedScore({
           post,
           currentUserId: currentUser._id,
@@ -252,6 +271,10 @@ router.get("/", async (req, res) => {
         }),
       }))
       .sort((a, b) => {
+        if (a.tier !== b.tier) {
+          return a.tier - b.tier;
+        }
+
         if (b.score !== a.score) {
           return b.score - a.score;
         }

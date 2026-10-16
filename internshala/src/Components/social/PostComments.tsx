@@ -118,6 +118,11 @@ export default function PostComments({
           return;
         }
 
+        if (data.error === "CONTENT_REJECTED") {
+          toast.error(t("social.contentRejected"));
+          return;
+        }
+
         throw new Error(data.error || "COMMENT_CREATE_FAILED");
       }
 
@@ -169,6 +174,11 @@ export default function PostComments({
       const data = await response.json();
 
       if (!response.ok) {
+        if (data.error === "CONTENT_REJECTED") {
+          toast.error(t("social.contentRejected"));
+          return;
+        }
+
         throw new Error(data.error || "COMMENT_UPDATE_FAILED");
       }
 
