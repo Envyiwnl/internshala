@@ -365,6 +365,7 @@ const activatePaidSubscription = async ({
 
 module.exports = {
   addBillingMonth,
+  reconcileSubscription,
   getCurrentSubscription,
   cancelSubscription,
   activatePaidSubscription,

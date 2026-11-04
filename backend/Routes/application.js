@@ -1,5 +1,9 @@
 const express = require("express");
 
+const mongoose = require("mongoose");
+
+const { reconcileSubscription } = require("../services/subscriptionService");
+
 const router = express.Router();
 
 const Application = require("../Model/Application");
@@ -11,80 +15,112 @@ const verifyAdminSession = require("../middleware/verifyAdminSession");
 
 router.post("/", verifyFirebaseToken, verifyLoginSession, async (req, res) => {
   try {
-    const user = await User.findOne({
-      firebaseUid: req.firebaseUser.uid,
-    });
+    const applicationData = await mongoose.connection.transaction(
+      async (session) => {
+        const user = await User.findOne({
+          firebaseUid: req.firebaseUser.uid,
+        }).session(session);
 
-    if (!user) {
-      return res.status(404).json({
-        error: "USER_NOT_FOUND",
-      });
-    }
+        if (!user) {
+          throw new Error("USER_NOT_FOUND");
+        }
 
-    let resumeId = null;
-    let resumeVersionNumber = null;
+        const now = new Date();
 
-    if (user.defaultResume) {
-      const resume = await Resume.findOne({
-        _id: user.defaultResume,
-        user: user._id,
-      });
+        await reconcileSubscription(user, now, session);
 
-      if (!resume) {
-        return res.status(409).json({
-          error: "DEFAULT_RESUME_NOT_FOUND",
-        });
-      }
+        const subscription = user.subscription;
+        const limit = subscription.applicationLimit;
+        const used = subscription.applicationsUsed;
 
-      if (
-        resume.status !== "generated" ||
-        resume.currentVersion < 1 ||
-        resume.versions.length === 0
-      ) {
-        return res.status(409).json({
-          error: "DEFAULT_RESUME_NOT_GENERATED",
-        });
-      }
+        if (
+          subscription.status !== "active" ||
+          (limit !== null && used >= limit)
+        ) {
+          throw new Error("APPLICATION_QUOTA_EXHAUSTED");
+        }
 
-      const version = resume.versions.find(
-        (item) => item.versionNumber === resume.currentVersion,
-      );
+        let resumeId = null;
+        let resumeVersionNumber = null;
 
-      if (!version || !version.pdfFileId) {
-        return res.status(409).json({
-          error: "DEFAULT_RESUME_VERSION_NOT_AVAILABLE",
-        });
-      }
+        if (user.defaultResume) {
+          const resume = await Resume.findOne({
+            _id: user.defaultResume,
+            user: user._id,
+          }).session(session);
 
-      resumeId = resume._id;
-      resumeVersionNumber = version.versionNumber;
-    }
+          if (!resume) {
+            throw new Error("DEFAULT_RESUME_NOT_FOUND");
+          }
 
-    const applicationData = await Application.create({
-      company: req.body.company,
+          if (
+            resume.status !== "generated" ||
+            resume.currentVersion < 1 ||
+            resume.versions.length === 0
+          ) {
+            throw new Error("DEFAULT_RESUME_NOT_GENERATED");
+          }
 
-      category: req.body.category,
+          const version = resume.versions.find(
+            (item) => item.versionNumber === resume.currentVersion,
+          );
 
-      coverLetter: req.body.coverLetter,
+          if (!version || !version.pdfFileId) {
+            throw new Error("DEFAULT_RESUME_VERSION_NOT_AVAILABLE");
+          }
 
-      user: {
-        uid: req.firebaseUser.uid,
-        name: req.firebaseUser.name || "",
-        email: req.firebaseUser.email || "",
-        photo: req.firebaseUser.picture || "",
+          resumeId = resume._id;
+          resumeVersionNumber = version.versionNumber;
+        }
+
+        subscription.applicationsUsed += 1;
+        await user.save({ session });
+
+        const [application] = await Application.create(
+          [
+            {
+              company: req.body.company,
+              category: req.body.category,
+              coverLetter: req.body.coverLetter,
+
+              user: {
+                uid: req.firebaseUser.uid,
+                name: req.firebaseUser.name || "",
+                email: req.firebaseUser.email || "",
+                photo: req.firebaseUser.picture || "",
+              },
+
+              Application: req.body.Application,
+              resume: resumeId,
+              availability: req.body.availability,
+              resumeVersionNumber,
+            },
+          ],
+          { session },
+        );
+
+        return application;
       },
-
-      Application: req.body.Application,
-
-      resume: resumeId,
-
-      availability: req.body.availability,
-
-      resumeVersionNumber,
-    });
+    );
 
     return res.status(201).json(applicationData);
   } catch (error) {
+    const clientErrors = {
+      USER_NOT_FOUND: 404,
+      APPLICATION_QUOTA_EXHAUSTED: 403,
+      DEFAULT_RESUME_NOT_FOUND: 409,
+      DEFAULT_RESUME_NOT_GENERATED: 409,
+      DEFAULT_RESUME_VERSION_NOT_AVAILABLE: 409,
+    };
+
+    const status = clientErrors[error.message];
+
+    if (status) {
+      return res.status(status).json({
+        error: error.message,
+      });
+    }
+
     console.error("Application submission failed:", error);
 
     return res.status(500).json({
