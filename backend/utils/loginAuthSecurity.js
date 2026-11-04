@@ -191,6 +191,40 @@ const getOtpResendAvailableAt = (from = new Date()) => {
   return new Date(from.getTime() + LOGIN_OTP_RESEND_COOLDOWN_MS);
 };
 
+const hashLoginStartRequestId = (requestId) => {
+  if (typeof requestId !== "string" || !requestId.trim()) {
+    throw new Error("LOGIN_START_REQUEST_ID_MISSING");
+  }
+
+  return createHmac(`login-security:start-request:${requestId.trim()}`);
+};
+
+const deriveLoginChallengeToken = ({ requestId, userId }) => {
+  if (!requestId || !userId) {
+    throw new Error("LOGIN_CHALLENGE_DERIVATION_INPUT_MISSING");
+  }
+
+  return createHmac(`login-security:challenge-token:${userId}:${requestId}`);
+};
+
+const deriveLoginSessionToken = ({ requestId, userId }) => {
+  if (!requestId || !userId) {
+    throw new Error("LOGIN_SESSION_DERIVATION_INPUT_MISSING");
+  }
+
+  return createHmac(`login-security:session-token:${userId}:${requestId}`);
+};
+
+const deriveVerifiedLoginSessionToken = ({ challengeToken, userId }) => {
+  if (!challengeToken || !userId) {
+    throw new Error("LOGIN_VERIFIED_SESSION_DERIVATION_INPUT_MISSING");
+  }
+
+  return createHmac(
+    `login-security:verified-session-token:${userId}:${challengeToken}`,
+  );
+};
+
 module.exports = {
   LOGIN_OTP_LENGTH,
 
@@ -221,4 +255,9 @@ module.exports = {
   getChallengeExpiresAt,
   getSessionExpiresAt,
   getOtpResendAvailableAt,
+
+  hashLoginStartRequestId,
+  deriveLoginChallengeToken,
+  deriveLoginSessionToken,
+  deriveVerifiedLoginSessionToken,
 };

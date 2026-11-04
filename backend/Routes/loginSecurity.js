@@ -19,11 +19,14 @@ const {
   hashLoginOtp,
   verifyLoginOtpHash,
 
-  generateLoginChallengeToken,
   hashLoginChallengeToken,
 
-  generateLoginSessionToken,
   hashLoginSessionToken,
+
+  hashLoginStartRequestId,
+  deriveLoginChallengeToken,
+  deriveLoginSessionToken,
+  deriveVerifiedLoginSessionToken,
 
   buildBrowserKey,
   buildDeviceKey,
@@ -136,8 +139,147 @@ const expireStaleSessions = async ({ userId, now = new Date() }) => {
   );
 };
 
+const respondToExistingLoginStart = ({
+  activity,
+  requestId,
+  user,
+  now,
+  res,
+}) => {
+  const userId = user._id.toString();
+
+  if (
+    activity.loginStatus === "otp_pending" &&
+    activity.challenge?.status === "pending" &&
+    activity.verification?.status === "pending" &&
+    activity.challenge?.expiresAt &&
+    new Date(activity.challenge.expiresAt) > now
+  ) {
+    const challengeToken = deriveLoginChallengeToken({
+      requestId,
+      userId,
+    });
+
+    const expectedHash = hashLoginChallengeToken(challengeToken);
+
+    if (activity.challenge.tokenHash !== expectedHash) {
+      return res.status(409).json({
+        error: "LOGIN_START_REQUEST_CONFLICT",
+      });
+    }
+
+    return res.status(202).json({
+      message: "LOGIN_OTP_REQUIRED",
+
+      requiresOtp: true,
+
+      challengeToken,
+
+      activityId: activity._id,
+
+      destination: user.email.replace(/^(.{2}).*(@.*)$/, "$1***$2"),
+
+      otpExpiresAt: activity.verification.otpExpiresAt,
+
+      challengeExpiresAt: activity.challenge.expiresAt,
+
+      resendAvailableAt: getOtpResendAvailableAt(
+        activity.verification.lastOtpSentAt || activity.loginAt,
+      ),
+
+      isNewBrowser: activity.environment?.isNewBrowser || false,
+
+      isNewDevice: activity.environment?.isNewDevice || false,
+
+      isNewIp: activity.environment?.isNewIp || false,
+    });
+  }
+
+  if (
+    activity.loginStatus === "success" &&
+    activity.session?.status === "active" &&
+    activity.session?.expiresAt &&
+    new Date(activity.session.expiresAt) > now
+  ) {
+    const sessionToken = deriveLoginSessionToken({
+      requestId,
+      userId,
+    });
+
+    const expectedHash = hashLoginSessionToken(sessionToken);
+
+    if (activity.session.tokenHash !== expectedHash) {
+      return res.status(409).json({
+        error: "LOGIN_START_REQUEST_CONFLICT",
+      });
+    }
+
+    return res.status(200).json({
+      message: "LOGIN_ALLOWED",
+
+      requiresOtp: false,
+
+      activityId: activity._id,
+
+      sessionToken,
+
+      sessionExpiresAt: activity.session.expiresAt,
+
+      isNewBrowser: activity.environment?.isNewBrowser || false,
+
+      isNewDevice: activity.environment?.isNewDevice || false,
+
+      isNewIp: activity.environment?.isNewIp || false,
+    });
+  }
+
+  if (activity.failureReason === "MOBILE_LOGIN_OUTSIDE_ALLOWED_HOURS") {
+    return res.status(403).json({
+      error: "MOBILE_LOGIN_OUTSIDE_ALLOWED_HOURS",
+
+      message: "Mobile login is allowed only between 10:00 AM and 1:00 PM IST.",
+
+      activityId: activity._id,
+
+      allowedWindow: {
+        start: "10:00",
+        end: "13:00",
+        timezone: "Asia/Kolkata",
+      },
+    });
+  }
+
+  if (activity.failureReason === "LOGIN_EMAIL_NOT_AVAILABLE") {
+    return res.status(400).json({
+      error: "LOGIN_EMAIL_NOT_AVAILABLE",
+
+      activityId: activity._id,
+    });
+  }
+
+  if (activity.failureReason === "LOGIN_OTP_DELIVERY_FAILED") {
+    return res.status(502).json({
+      error: "LOGIN_OTP_DELIVERY_FAILED",
+    });
+  }
+
+  return res.status(409).json({
+    error: "LOGIN_START_REQUEST_ALREADY_COMPLETED",
+  });
+};
+
 router.post("/start", verifyFirebaseToken, async (req, res) => {
+  let duplicateStartContext = null;
+
   try {
+    const requestId =
+      typeof req.body?.requestId === "string" ? req.body.requestId.trim() : "";
+
+    if (!/^[A-Za-z0-9_-]{16,128}$/.test(requestId)) {
+      return res.status(400).json({
+        error: "INVALID_LOGIN_START_REQUEST_ID",
+      });
+    }
     const firebaseUser = req.firebaseUser;
 
     const user = await User.findOne({
@@ -150,7 +292,31 @@ router.post("/start", verifyFirebaseToken, async (req, res) => {
       });
     }
 
+    const startRequestHash = hashLoginStartRequestId(requestId);
+
     const now = new Date();
+
+    duplicateStartContext = {
+      user,
+      requestId,
+      startRequestHash,
+    };
+
+    const existingStart = await LoginActivity.findOne({
+      user: user._id,
+
+      startRequestHash,
+    }).select("+challenge.tokenHash +session.tokenHash");
+
+    if (existingStart) {
+      return respondToExistingLoginStart({
+        activity: existingStart,
+        requestId,
+        user,
+        now,
+        res,
+      });
+    }
 
     const audit = await getLoginRequestAudit(req);
 
@@ -185,6 +351,8 @@ router.post("/start", verifyFirebaseToken, async (req, res) => {
         firebaseUid: user.firebaseUid,
 
         email: user.email || "",
+
+        startRequestHash,
 
         loginStatus: "rejected",
 
@@ -246,6 +414,8 @@ router.post("/start", verifyFirebaseToken, async (req, res) => {
 
           email: "",
 
+          startRequestHash,
+
           loginStatus: "failed",
 
           failureReason: "LOGIN_EMAIL_NOT_AVAILABLE",
@@ -293,7 +463,11 @@ router.post("/start", verifyFirebaseToken, async (req, res) => {
         now,
       });
 
-      const challengeToken = generateLoginChallengeToken();
+      const challengeToken = deriveLoginChallengeToken({
+        requestId,
+
+        userId: user._id.toString(),
+      });
 
       const challengeTokenHash = hashLoginChallengeToken(challengeToken);
 
@@ -305,6 +479,8 @@ router.post("/start", verifyFirebaseToken, async (req, res) => {
         firebaseUid: user.firebaseUid,
 
         email: user.email,
+
+        startRequestHash,
 
         loginStatus: "otp_pending",
 
@@ -429,7 +605,11 @@ router.post("/start", verifyFirebaseToken, async (req, res) => {
       });
     }
 
-    const sessionToken = generateLoginSessionToken();
+    const sessionToken = deriveLoginSessionToken({
+      requestId,
+
+      userId: user._id.toString(),
+    });
 
     const sessionTokenHash = hashLoginSessionToken(sessionToken);
 
@@ -441,6 +621,8 @@ router.post("/start", verifyFirebaseToken, async (req, res) => {
       firebaseUid: user.firebaseUid,
 
       email: user.email || "",
+
+      startRequestHash,
 
       loginStatus: "success",
 
@@ -513,6 +695,29 @@ router.post("/start", verifyFirebaseToken, async (req, res) => {
       isNewIp: environment.isNewIp,
     });
   } catch (error) {
+    if (error?.code === 11000 && duplicateStartContext) {
+      try {
+        const { user, requestId, startRequestHash } = duplicateStartContext;
+
+        const existingStart = await LoginActivity.findOne({
+          user: user._id,
+          startRequestHash,
+        }).select("+challenge.tokenHash +session.tokenHash");
+
+        if (existingStart) {
+          return respondToExistingLoginStart({
+            activity: existingStart,
+            requestId,
+            user,
+            now: new Date(),
+            res,
+          });
+        }
+      } catch (recoveryError) {
+        console.error("Duplicate login start recovery failed:", recoveryError);
+      }
+    }
+
     console.error("Login security start failed:", error);
 
     return res.status(500).json({
@@ -543,7 +748,7 @@ router.post("/verify-otp", verifyFirebaseToken, async (req, res) => {
       firebaseUid: req.firebaseUser.uid,
 
       "challenge.tokenHash": challengeTokenHash,
-    }).select("+challenge.tokenHash +verification.otpHash");
+    }).select("+challenge.tokenHash +verification.otpHash +session.tokenHash");
 
     if (!activity) {
       return res.status(404).json({
@@ -557,8 +762,62 @@ router.post("/verify-otp", verifyFirebaseToken, async (req, res) => {
       activity.loginStatus === "success" ||
       activity.challenge.status === "consumed"
     ) {
-      return res.status(409).json({
-        error: "LOGIN_CHALLENGE_ALREADY_USED",
+      const existingOtpMatches = verifyLoginOtpHash({
+        activityId: activity._id.toString(),
+
+        otp,
+
+        storedHash: activity.verification.otpHash,
+      });
+
+      if (!existingOtpMatches) {
+        return res.status(409).json({
+          error: "LOGIN_CHALLENGE_ALREADY_USED",
+        });
+      }
+
+      if (
+        activity.loginStatus !== "success" ||
+        activity.challenge.status !== "consumed" ||
+        activity.session.status !== "active" ||
+        !activity.session.expiresAt ||
+        new Date(activity.session.expiresAt).getTime() <= now.getTime()
+      ) {
+        return res.status(409).json({
+          error: "LOGIN_CHALLENGE_ALREADY_USED",
+        });
+      }
+
+      const sessionToken = deriveVerifiedLoginSessionToken({
+        challengeToken: challengeToken.trim(),
+
+        userId: activity.user.toString(),
+      });
+
+      const expectedSessionHash = hashLoginSessionToken(sessionToken);
+
+      if (activity.session.tokenHash !== expectedSessionHash) {
+        return res.status(409).json({
+          error: "LOGIN_OTP_VERIFICATION_CONFLICT",
+        });
+      }
+
+      return res.status(200).json({
+        message: "LOGIN_VERIFIED",
+
+        activityId: activity._id,
+
+        sessionToken,
+
+        sessionExpiresAt: activity.session.expiresAt,
+
+        isNewBrowser: activity.environment.isNewBrowser,
+
+        isNewDevice: activity.environment.isNewDevice,
+
+        isNewIp: activity.environment.isNewIp,
+
+        trusted: activity.environment.trusted,
       });
     }
 
@@ -646,6 +905,11 @@ router.post("/verify-otp", verifyFirebaseToken, async (req, res) => {
       storedHash: activity.verification.otpHash,
     });
 
+    const submittedOtpHash = hashLoginOtp({
+      activityId: activity._id.toString(),
+      otp,
+    });
+
     if (!otpMatches) {
       const attemptedActivity = await LoginActivity.findOneAndUpdate(
         {
@@ -660,6 +924,10 @@ router.post("/verify-otp", verifyFirebaseToken, async (req, res) => {
           "verification.attempts": {
             $lt: MAX_LOGIN_OTP_ATTEMPTS,
           },
+
+          "verification.lastFailedOtpHash": {
+            $ne: submittedOtpHash,
+          },
         },
         {
           $inc: {
@@ -668,6 +936,8 @@ router.post("/verify-otp", verifyFirebaseToken, async (req, res) => {
 
           $set: {
             failureReason: "INVALID_LOGIN_OTP",
+
+            "verification.lastFailedOtpHash": submittedOtpHash,
           },
         },
         {
@@ -676,6 +946,31 @@ router.post("/verify-otp", verifyFirebaseToken, async (req, res) => {
       );
 
       if (!attemptedActivity) {
+        const duplicateAttempt = await LoginActivity.findOne({
+          _id: activity._id,
+
+          firebaseUid: req.firebaseUser.uid,
+
+          "challenge.status": "pending",
+
+          "verification.status": "pending",
+
+          "verification.lastFailedOtpHash": submittedOtpHash,
+        }).select("verification.attempts");
+
+        if (duplicateAttempt) {
+          const attemptsRemaining = Math.max(
+            0,
+            MAX_LOGIN_OTP_ATTEMPTS - duplicateAttempt.verification.attempts,
+          );
+
+          return res.status(400).json({
+            error: "INVALID_LOGIN_OTP",
+
+            attemptsRemaining,
+          });
+        }
+
         return res.status(409).json({
           error: "LOGIN_OTP_VERIFICATION_CONFLICT",
         });
@@ -720,13 +1015,11 @@ router.post("/verify-otp", verifyFirebaseToken, async (req, res) => {
       });
     }
 
-    /*
-     * Generate the app session before the
-     * atomic claim. Only one concurrent
-     * verification request will be allowed
-     * to consume the challenge.
-     */
-    const sessionToken = generateLoginSessionToken();
+    const sessionToken = deriveVerifiedLoginSessionToken({
+      challengeToken: challengeToken.trim(),
+
+      userId: activity.user.toString(),
+    });
 
     const sessionTokenHash = hashLoginSessionToken(sessionToken);
 
@@ -797,6 +1090,48 @@ router.post("/verify-otp", verifyFirebaseToken, async (req, res) => {
     );
 
     if (!verifiedActivity) {
+      const completedActivity = await LoginActivity.findById(
+        activity._id,
+      ).select("+verification.otpHash +session.tokenHash");
+
+      if (
+        completedActivity?.loginStatus === "success" &&
+        completedActivity.challenge?.status === "consumed" &&
+        completedActivity.session?.status === "active" &&
+        completedActivity.session?.expiresAt &&
+        new Date(completedActivity.session.expiresAt).getTime() > now.getTime()
+      ) {
+        const completedSessionToken = deriveVerifiedLoginSessionToken({
+          challengeToken: challengeToken.trim(),
+
+          userId: completedActivity.user.toString(),
+        });
+
+        const expectedSessionHash = hashLoginSessionToken(
+          completedSessionToken,
+        );
+
+        if (completedActivity.session.tokenHash === expectedSessionHash) {
+          return res.status(200).json({
+            message: "LOGIN_VERIFIED",
+
+            activityId: completedActivity._id,
+
+            sessionToken: completedSessionToken,
+
+            sessionExpiresAt: completedActivity.session.expiresAt,
+
+            isNewBrowser: completedActivity.environment.isNewBrowser,
+
+            isNewDevice: completedActivity.environment.isNewDevice,
+
+            isNewIp: completedActivity.environment.isNewIp,
+
+            trusted: completedActivity.environment.trusted,
+          });
+        }
+      }
+
       return res.status(409).json({
         error: "LOGIN_OTP_VERIFICATION_CONFLICT",
       });
@@ -844,7 +1179,9 @@ router.post("/resend-otp", verifyFirebaseToken, async (req, res) => {
       firebaseUid: req.firebaseUser.uid,
 
       "challenge.tokenHash": challengeTokenHash,
-    }).select("+challenge.tokenHash +verification.otpHash");
+    }).select(
+      "+challenge.tokenHash +verification.otpHash +verification.lastFailedOtpHash",
+    );
 
     if (!activity) {
       return res.status(404).json({
@@ -965,6 +1302,8 @@ router.post("/resend-otp", verifyFirebaseToken, async (req, res) => {
 
       lastOtpSentAt: activity.verification.lastOtpSentAt,
 
+      lastFailedOtpHash: activity.verification.lastFailedOtpHash,
+
       failureReason: activity.failureReason,
     };
 
@@ -1006,6 +1345,8 @@ router.post("/resend-otp", verifyFirebaseToken, async (req, res) => {
 
           "verification.status": "pending",
 
+          "verification.lastFailedOtpHash": "",
+
           "verification.lastOtpSentAt": now,
         },
 
@@ -1037,11 +1378,6 @@ router.post("/resend-otp", verifyFirebaseToken, async (req, res) => {
         deviceType: updatedActivity.device?.type || "",
       });
     } catch (emailError) {
-      /*
-       * Restore the previous OTP state only
-       * if this request still owns the state
-       * it just wrote.
-       */
       await LoginActivity.updateOne(
         {
           _id: updatedActivity._id,
@@ -1059,6 +1395,8 @@ router.post("/resend-otp", verifyFirebaseToken, async (req, res) => {
             "verification.status": previousState.status,
 
             "verification.resendCount": previousState.resendCount,
+
+            "verification.lastFailedOtpHash": previousState.lastFailedOtpHash,
 
             "verification.lastOtpSentAt": previousState.lastOtpSentAt,
 

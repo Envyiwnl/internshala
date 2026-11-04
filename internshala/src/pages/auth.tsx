@@ -92,6 +92,22 @@ const isValidEmail = (email: string) => {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 };
 
+const createLoginStartRequestId = () => {
+  const cryptoApi = window.crypto;
+
+  if (typeof cryptoApi.randomUUID === "function") {
+    return cryptoApi.randomUUID();
+  }
+
+  const bytes = new Uint8Array(24);
+
+  cryptoApi.getRandomValues(bytes);
+
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join(
+    "",
+  );
+};
+
 const normalizePhoneNumber = (phoneNumber: string) => {
   return phoneNumber.replace(/[\s()-]/g, "").trim();
 };
@@ -381,15 +397,44 @@ export default function AuthPage() {
   }) => {
     const idToken = await firebaseUser.getIdToken(true);
 
-    const response = await fetch(`${API_URL}/api/login-security/start`, {
-      method: "POST",
+    const requestId = createLoginStartRequestId();
 
-      headers: {
-        Authorization: `Bearer ${idToken}`,
+    const performStartRequest = () =>
+      fetch(`${API_URL}/api/login-security/start`, {
+        method: "POST",
 
-        "Content-Type": "application/json",
-      },
-    });
+        headers: {
+          Authorization: `Bearer ${idToken}`,
+
+          "Content-Type": "application/json",
+        },
+
+        body: JSON.stringify({
+          requestId,
+        }),
+      });
+
+    let response: Response;
+
+    try {
+      response = await performStartRequest();
+    } catch (firstNetworkError) {
+      console.warn(
+        "Login security start request interrupted. Retrying:",
+        firstNetworkError,
+      );
+
+      try {
+        response = await performStartRequest();
+      } catch (retryNetworkError) {
+        console.error("Login security start retry failed:", retryNetworkError);
+
+        throw {
+          loginSecurity: true,
+          code: "LOGIN_VERIFICATION_NETWORK_ERROR",
+        };
+      }
+    }
 
     const data: LoginSecurityResponse = await response.json().catch(() => ({}));
 
@@ -562,6 +607,9 @@ export default function AuthPage() {
 
       case "LOGIN_CHALLENGE_EXPIRED":
         return t("authPage.errors.loginChallengeExpired");
+
+      case "LOGIN_VERIFICATION_NETWORK_ERROR":
+        return t("authPage.errors.loginVerificationNetworkError");
 
       case "INVALID_OTP_FORMAT":
         return t("authPage.errors.invalidLoginOtpFormat");
@@ -1003,21 +1051,34 @@ export default function AuthPage() {
 
       const idToken = await firebaseUser.getIdToken(true);
 
-      const response = await fetch(`${API_URL}/api/login-security/verify-otp`, {
-        method: "POST",
+      const performVerifyRequest = () =>
+        fetch(`${API_URL}/api/login-security/verify-otp`, {
+          method: "POST",
 
-        headers: {
-          Authorization: `Bearer ${idToken}`,
+          headers: {
+            Authorization: `Bearer ${idToken}`,
 
-          "Content-Type": "application/json",
-        },
+            "Content-Type": "application/json",
+          },
 
-        body: JSON.stringify({
-          challengeToken: loginChallengeToken,
+          body: JSON.stringify({
+            challengeToken: loginChallengeToken,
+            otp: loginOtp,
+          }),
+        });
 
-          otp: loginOtp,
-        }),
-      });
+      let response: Response;
+
+      try {
+        response = await performVerifyRequest();
+      } catch (firstNetworkError) {
+        console.warn(
+          "Login OTP verification request interrupted. Retrying:",
+          firstNetworkError,
+        );
+
+        response = await performVerifyRequest();
+      }
 
       const data: LoginSecurityResponse = await response
         .json()

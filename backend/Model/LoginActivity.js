@@ -22,6 +22,11 @@ const LoginActivitySchema = new mongoose.Schema(
       lowercase: true,
     },
 
+    startRequestHash: {
+      type: String,
+      select: false,
+    },
+
     loginStatus: {
       type: String,
       enum: ["pending", "otp_pending", "success", "rejected", "failed"],
@@ -209,6 +214,12 @@ const LoginActivitySchema = new mongoose.Schema(
         select: false,
       },
 
+      lastFailedOtpHash: {
+        type: String,
+        default: "",
+        select: false,
+      },
+
       otpExpiresAt: {
         type: Date,
         default: null,
@@ -311,5 +322,21 @@ LoginActivitySchema.index({
 LoginActivitySchema.index({
   "session.tokenHash": 1,
 });
+
+LoginActivitySchema.index(
+  {
+    user: 1,
+    startRequestHash: 1,
+  },
+  {
+    unique: true,
+
+    partialFilterExpression: {
+      startRequestHash: {
+        $exists: true,
+      },
+    },
+  },
+);
 
 module.exports = mongoose.model("LoginActivity", LoginActivitySchema);
