@@ -465,6 +465,49 @@
     "settingsDescription": "Configure as preferências do sistema",
     "logout": "Sair"
   },
+  "loginHistory": {
+    "title": "Histórico de login",
+    "description": "Revise atividades recentes de login, dispositivos, localizações e detalhes de verificação.",
+    "loading": "Carregando histórico de login...",
+    "loadFailed": "Não foi possível carregar o histórico de login.",
+    "loginRequired": "Você precisa estar conectado para ver o histórico de login.",
+    "empty": "Nenhuma atividade de login encontrada.",
+    "currentSession": "Sessão atual",
+    "trusted": "Confiável",
+    "emailOtp": "OTP por e-mail verificado",
+    "noOtp": "OTP não foi necessário",
+    "newBrowser": "Novo navegador",
+    "newDevice": "Novo dispositivo",
+    "newIp": "Novo endereço IP",
+    "failureReason": "Motivo da falha",
+    "status": {
+      "pending": "Pendente",
+      "otp_pending": "OTP pendente",
+      "success": "Bem-sucedido",
+      "rejected": "Rejeitado",
+      "failed": "Falhou"
+    }
+  },
+
+  "activeSessions": {
+    "title": "Sessões ativas",
+    "description": "Gerencie os dispositivos e navegadores atualmente conectados à sua conta.",
+    "loading": "Carregando sessões ativas...",
+    "loadFailed": "Não foi possível carregar as sessões ativas.",
+    "loginRequired": "Você precisa estar conectado para ver as sessões ativas.",
+    "empty": "Nenhuma sessão ativa encontrada.",
+    "current": "Sessão atual",
+    "trusted": "Confiável",
+    "emailOtp": "OTP por e-mail verificado",
+    "noOtp": "OTP não foi necessário",
+    "lastActive": "Última atividade",
+    "signOut": "Sair",
+    "signingOut": "Saindo...",
+    "signOutOthers": "Sair dos outros dispositivos",
+    "signingOutOthers": "Saindo dos outros dispositivos...",
+    "revokeFailed": "Não foi possível encerrar esta sessão.",
+    "revokeOthersFailed": "Não foi possível encerrar as outras sessões."
+  },
 
   "status": {
     "pending": "Pendente",

@@ -1,6 +1,7 @@
 import { selectuser } from "@/feature/userSlice";
 import { getLocalizedContent } from "@/utils/getLocalizedContent";
 import axios from "axios";
+import { authenticatedFetch } from "@/utils/authenticatedFetch";
 import {
   ArrowUpRight,
   Calendar,
@@ -84,15 +85,28 @@ function index() {
         category: internshipData.category,
         company: internshipData.company,
         coverLetter,
-        user,
         Application: id,
         availability,
       };
 
-      await axios.post(
+      const response = await authenticatedFetch(
         "https://internshala-78tb.onrender.com/api/application",
-        applicationdata,
+        {
+          method: "POST",
+
+          headers: {
+            "Content-Type": "application/json",
+          },
+
+          body: JSON.stringify(applicationdata),
+        },
       );
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(data.error || "APPLICATION_SUBMISSION_FAILED");
+      }
 
       toast.success(t("application.submitted"));
 

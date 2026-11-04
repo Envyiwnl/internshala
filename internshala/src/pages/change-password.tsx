@@ -18,6 +18,13 @@ import {
 
 import { auth } from "@/firebase/firebase";
 
+import {
+  authenticatedFetch,
+  AuthenticatedFetchError,
+} from "@/utils/authenticatedFetch";
+
+import { clearLoginSecurityStorage } from "@/utils/loginSession";
+
 const API_URL = "https://internshala-78tb.onrender.com";
 
 const RESET_SESSION_STORAGE_KEY = "internshala_password_reset_session";
@@ -116,15 +123,12 @@ export default function ChangePasswordPage() {
       setLoading(true);
       setError("");
 
-      const idToken = await firebaseUser.getIdToken();
-
-      const response = await fetch(
+      const response = await authenticatedFetch(
         `${API_URL}/api/password-reset/change-password`,
         {
           method: "POST",
 
           headers: {
-            Authorization: `Bearer ${idToken}`,
             "Content-Type": "application/json",
           },
 
@@ -163,12 +167,23 @@ export default function ChangePasswordPage() {
 
       toast.success(t("changePassword.successToast"));
 
+      clearLoginSecurityStorage();
+
       await signOut(auth);
 
       setTimeout(() => {
         router.replace("/auth?mode=login");
       }, 1200);
     } catch (changeError) {
+      if (changeError instanceof AuthenticatedFetchError) {
+        clearLoginSecurityStorage();
+
+        await signOut(auth);
+
+        await router.replace("/auth?mode=login");
+
+        return;
+      }
       console.error("Password change failed:", changeError);
 
       setError(t("changePassword.errors.networkError"));

@@ -466,6 +466,50 @@
     "logout": "退出登录"
   },
 
+  "loginHistory": {
+    "title": "登录历史",
+    "description": "查看最近的登录活动、设备、位置和验证详情。",
+    "loading": "正在加载登录历史...",
+    "loadFailed": "无法加载登录历史。",
+    "loginRequired": "您必须登录后才能查看登录历史。",
+    "empty": "未找到登录活动。",
+    "currentSession": "当前会话",
+    "trusted": "受信任",
+    "emailOtp": "邮箱 OTP 已验证",
+    "noOtp": "无需 OTP",
+    "newBrowser": "新浏览器",
+    "newDevice": "新设备",
+    "newIp": "新 IP 地址",
+    "failureReason": "失败原因",
+    "status": {
+      "pending": "待处理",
+      "otp_pending": "等待 OTP",
+      "success": "成功",
+      "rejected": "已拒绝",
+      "failed": "失败"
+    }
+  },
+
+  "activeSessions": {
+    "title": "活跃会话",
+    "description": "管理当前登录到您账户的设备和浏览器。",
+    "loading": "正在加载活跃会话...",
+    "loadFailed": "无法加载活跃会话。",
+    "loginRequired": "您必须登录后才能查看活跃会话。",
+    "empty": "未找到活跃会话。",
+    "current": "当前会话",
+    "trusted": "受信任",
+    "emailOtp": "邮箱 OTP 已验证",
+    "noOtp": "无需 OTP",
+    "lastActive": "最后活动时间",
+    "signOut": "退出登录",
+    "signingOut": "正在退出...",
+    "signOutOthers": "退出其他设备",
+    "signingOutOthers": "正在退出其他设备...",
+    "revokeFailed": "无法退出此会话。",
+    "revokeOthersFailed": "无法退出其他会话。"
+  },
+
   "status": {
     "pending": "待处理",
     "approved": "已批准",

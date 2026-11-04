@@ -440,6 +440,48 @@
     "settingsDescription": "Configurar las preferencias del sistema",
     "logout": "Cerrar sesión"
   },
+  "loginHistory": {
+    "title": "Historial de inicio de sesión",
+    "description": "Revisa la actividad reciente de inicio de sesión, dispositivos, ubicaciones y detalles de verificación.",
+    "loading": "Cargando historial de inicio de sesión...",
+    "loadFailed": "No se pudo cargar el historial de inicio de sesión.",
+    "loginRequired": "Debes iniciar sesión para ver el historial de inicio de sesión.",
+    "empty": "No se encontró actividad de inicio de sesión.",
+    "currentSession": "Sesión actual",
+    "trusted": "De confianza",
+    "emailOtp": "OTP por correo verificado",
+    "noOtp": "No se requirió OTP",
+    "newBrowser": "Navegador nuevo",
+    "newDevice": "Dispositivo nuevo",
+    "newIp": "Nueva dirección IP",
+    "failureReason": "Motivo del fallo",
+    "status": {
+      "pending": "Pendiente",
+      "otp_pending": "OTP pendiente",
+      "success": "Exitoso",
+      "rejected": "Rechazado",
+      "failed": "Fallido"
+    }
+  },
+  "activeSessions": {
+    "title": "Sesiones activas",
+    "description": "Administra los dispositivos y navegadores que tienen una sesión iniciada en tu cuenta.",
+    "loading": "Cargando sesiones activas...",
+    "loadFailed": "No se pudieron cargar las sesiones activas.",
+    "loginRequired": "Debes iniciar sesión para ver las sesiones activas.",
+    "empty": "No se encontraron sesiones activas.",
+    "current": "Sesión actual",
+    "trusted": "De confianza",
+    "emailOtp": "OTP por correo verificado",
+    "noOtp": "No se requirió OTP",
+    "lastActive": "Última actividad",
+    "signOut": "Cerrar sesión",
+    "signingOut": "Cerrando sesión...",
+    "signOutOthers": "Cerrar sesión en otros dispositivos",
+    "signingOutOthers": "Cerrando sesión en otros dispositivos...",
+    "revokeFailed": "No se pudo cerrar esta sesión.",
+    "revokeOthersFailed": "No se pudieron cerrar las otras sesiones."
+  },
   "history": {
     "title": "Historial de idiomas",
     "description": "Cambios recientes en tu preferencia de idioma.",

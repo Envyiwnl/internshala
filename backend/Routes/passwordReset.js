@@ -4,6 +4,8 @@ const User = require("../Model/User");
 const PasswordReset = require("../Model/PasswordReset");
 
 const verifyFirebaseToken = require("../middleware/verifyFirebaseToken");
+const verifyLoginSession = require("../middleware/verifyLoginSession");
+const LoginActivity = require("../Model/LoginActivity");
 
 const getRequestAudit = require("../utils/getRequestAudit");
 
@@ -1482,73 +1484,92 @@ router.post("/retry-delivery", async (req, res) => {
   }
 });
 
-router.post("/change-password", verifyFirebaseToken, async (req, res) => {
-  try {
-    const { newPassword } = req.body;
+router.post(
+  "/change-password",
+  verifyFirebaseToken,
+  verifyLoginSession,
+  async (req, res) => {
+    try {
+      const { newPassword } = req.body;
 
-    if (typeof newPassword !== "string" || !newPassword) {
-      return res.status(400).json({
-        error: "NEW_PASSWORD_REQUIRED",
+      if (typeof newPassword !== "string" || !newPassword) {
+        return res.status(400).json({
+          error: "NEW_PASSWORD_REQUIRED",
+        });
+      }
+
+      if (newPassword.length < 8 || newPassword.length > 128) {
+        return res.status(400).json({
+          error: "INVALID_NEW_PASSWORD_LENGTH",
+        });
+      }
+
+      const user = await User.findOne({
+        firebaseUid: req.firebaseUser.uid,
       });
-    }
 
-    if (newPassword.length < 8 || newPassword.length > 128) {
-      return res.status(400).json({
-        error: "INVALID_NEW_PASSWORD_LENGTH",
+      if (!user) {
+        return res.status(404).json({
+          error: "USER_NOT_FOUND",
+        });
+      }
+
+      if (!user.mustChangePassword) {
+        return res.status(409).json({
+          error: "PASSWORD_CHANGE_NOT_REQUIRED",
+        });
+      }
+
+      await setPermanentPassword({
+        firebaseUid: user.firebaseUid,
+        password: newPassword,
       });
-    }
 
-    const user = await User.findOne({
-      firebaseUid: req.firebaseUser.uid,
-    });
+      const passwordChangedAt = new Date();
 
-    if (!user) {
-      return res.status(404).json({
-        error: "USER_NOT_FOUND",
-      });
-    }
-
-    if (!user.mustChangePassword) {
-      return res.status(409).json({
-        error: "PASSWORD_CHANGE_NOT_REQUIRED",
-      });
-    }
-
-    await setPermanentPassword({
-      firebaseUid: user.firebaseUid,
-      password: newPassword,
-    });
-
-    const passwordChangedAt = new Date();
-
-    await User.updateOne(
-      {
-        _id: user._id,
-      },
-      {
-        $set: {
-          mustChangePassword: false,
-
-          passwordChangedAt,
+      await User.updateOne(
+        {
+          _id: user._id,
         },
-      },
-    );
+        {
+          $set: {
+            mustChangePassword: false,
 
-    return res.status(200).json({
-      message: "PASSWORD_CHANGED_SUCCESSFULLY",
+            passwordChangedAt,
+          },
+        },
+      );
 
-      passwordChangedAt,
+      await LoginActivity.updateMany(
+        {
+          user: user._id,
+          "session.status": "active",
+        },
+        {
+          $set: {
+            "session.status": "revoked",
+            "session.revokedAt": passwordChangedAt,
+            "session.revokedReason": "PASSWORD_CHANGED",
+          },
+        },
+      );
 
-      signOutRequired: true,
-    });
-  } catch (error) {
-    console.error("Permanent password update failed:", error);
+      return res.status(200).json({
+        message: "PASSWORD_CHANGED_SUCCESSFULLY",
 
-    return res.status(500).json({
-      error: "PASSWORD_CHANGE_FAILED",
-    });
-  }
-});
+        passwordChangedAt,
+
+        signOutRequired: true,
+      });
+    } catch (error) {
+      console.error("Permanent password update failed:", error);
+
+      return res.status(500).json({
+        error: "PASSWORD_CHANGE_FAILED",
+      });
+    }
+  },
+);
 
 router.post("/status", async (req, res) => {
   try {
@@ -1584,80 +1605,87 @@ router.post("/status", async (req, res) => {
   }
 });
 
-router.get("/history", verifyFirebaseToken, async (req, res) => {
-  try {
-    const user = await User.findOne({
-      firebaseUid: req.firebaseUser.uid,
-    });
+router.get(
+  "/history",
+  verifyFirebaseToken,
+  verifyLoginSession,
+  async (req, res) => {
+    try {
+      const user = await User.findOne({
+        firebaseUid: req.firebaseUser.uid,
+      });
 
-    if (!user) {
-      return res.status(404).json({
-        error: "USER_NOT_FOUND",
+      if (!user) {
+        return res.status(404).json({
+          error: "USER_NOT_FOUND",
+        });
+      }
+
+      const history = await PasswordReset.find({
+        user: user._id,
+      })
+        .select(
+          [
+            "resetMethod",
+            "destination",
+            "otpProvider",
+            "twilioVerificationSid",
+            "passwordDeliveryMethod",
+            "passwordDeliveryDestination",
+            "preferredLanguage",
+            "verificationStatus",
+            "status",
+            "otpAttempts",
+            "resendCount",
+            "deliveryStatus",
+            "deliveryAttempts",
+            "requestedAt",
+            "nextRequestAllowedAt",
+            "verifiedAt",
+            "passwordUpdatedAt",
+            "passwordDeliveredAt",
+            "completedAt",
+            "failedAt",
+            "expiredAt",
+            "failureReason",
+            "ipAddress",
+            "userAgent",
+            "browser",
+            "os",
+            "device",
+            "createdAt",
+            "updatedAt",
+          ].join(" "),
+        )
+        .sort({
+          requestedAt: -1,
+        })
+        .lean();
+
+      const sanitizedHistory = history.map((entry) => ({
+        ...entry,
+
+        destination:
+          entry.resetMethod === "email"
+            ? maskEmail(entry.destination)
+            : maskPhoneNumber(entry.destination),
+
+        passwordDeliveryDestination: maskEmail(
+          entry.passwordDeliveryDestination,
+        ),
+      }));
+
+      return res.status(200).json({
+        history: sanitizedHistory,
+      });
+    } catch (error) {
+      console.error("Password reset history fetch failed:", error);
+
+      return res.status(500).json({
+        error: "PASSWORD_RESET_HISTORY_FAILED",
       });
     }
-
-    const history = await PasswordReset.find({
-      user: user._id,
-    })
-      .select(
-        [
-          "resetMethod",
-          "destination",
-          "otpProvider",
-          "twilioVerificationSid",
-          "passwordDeliveryMethod",
-          "passwordDeliveryDestination",
-          "preferredLanguage",
-          "verificationStatus",
-          "status",
-          "otpAttempts",
-          "resendCount",
-          "deliveryStatus",
-          "deliveryAttempts",
-          "requestedAt",
-          "nextRequestAllowedAt",
-          "verifiedAt",
-          "passwordUpdatedAt",
-          "passwordDeliveredAt",
-          "completedAt",
-          "failedAt",
-          "expiredAt",
-          "failureReason",
-          "ipAddress",
-          "userAgent",
-          "browser",
-          "os",
-          "device",
-          "createdAt",
-          "updatedAt",
-        ].join(" "),
-      )
-      .sort({
-        requestedAt: -1,
-      })
-      .lean();
-
-    const sanitizedHistory = history.map((entry) => ({
-      ...entry,
-
-      destination:
-        entry.resetMethod === "email"
-          ? maskEmail(entry.destination)
-          : maskPhoneNumber(entry.destination),
-
-      passwordDeliveryDestination: maskEmail(entry.passwordDeliveryDestination),
-    }));
-
-    return res.status(200).json({
-      history: sanitizedHistory,
-    });
-  } catch (error) {
-    console.error("Password reset history fetch failed:", error);
-
-    return res.status(500).json({
-      error: "PASSWORD_RESET_HISTORY_FAILED",
-    });
-  }
-});
+  },
+);
 
 module.exports = router;

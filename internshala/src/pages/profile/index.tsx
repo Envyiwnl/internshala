@@ -10,6 +10,8 @@ import Link from "next/link";
 import { useSelector } from "react-redux";
 import { selectuser } from "@/feature/userSlice";
 import LanguageHistory from "@/Components/LanguageHistory";
+import LoginHistory from "@/Components/LoginHistory";
+import ActiveSessions from "@/Components/ActiveSessions";
 import { useTranslation } from "react-i18next";
 
 const index = () => {
@@ -113,7 +115,8 @@ const index = () => {
                   <ExternalLink className="ml-2 h-4 w-4" />
                 </Link>
               </div>
-
+              <ActiveSessions />
+              <LoginHistory />
               <LanguageHistory />
             </div>
           </div>

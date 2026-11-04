@@ -464,6 +464,49 @@
     "settingsDescription": "Configurer les préférences du système",
     "logout": "Se déconnecter"
   },
+  "loginHistory": {
+    "title": "Historique des connexions",
+    "description": "Consultez les activités de connexion récentes, les appareils, les emplacements et les détails de vérification.",
+    "loading": "Chargement de l’historique des connexions...",
+    "loadFailed": "Impossible de charger l’historique des connexions.",
+    "loginRequired": "Vous devez être connecté pour voir l’historique des connexions.",
+    "empty": "Aucune activité de connexion trouvée.",
+    "currentSession": "Session actuelle",
+    "trusted": "Approuvé",
+    "emailOtp": "OTP par e-mail vérifié",
+    "noOtp": "Aucun OTP requis",
+    "newBrowser": "Nouveau navigateur",
+    "newDevice": "Nouvel appareil",
+    "newIp": "Nouvelle adresse IP",
+    "failureReason": "Raison de l’échec",
+    "status": {
+      "pending": "En attente",
+      "otp_pending": "OTP en attente",
+      "success": "Réussie",
+      "rejected": "Rejetée",
+      "failed": "Échouée"
+    }
+  },
+
+  "activeSessions": {
+    "title": "Sessions actives",
+    "description": "Gérez les appareils et navigateurs actuellement connectés à votre compte.",
+    "loading": "Chargement des sessions actives...",
+    "loadFailed": "Impossible de charger les sessions actives.",
+    "loginRequired": "Vous devez être connecté pour voir les sessions actives.",
+    "empty": "Aucune session active trouvée.",
+    "current": "Session actuelle",
+    "trusted": "Approuvé",
+    "emailOtp": "OTP par e-mail vérifié",
+    "noOtp": "Aucun OTP requis",
+    "lastActive": "Dernière activité",
+    "signOut": "Se déconnecter",
+    "signingOut": "Déconnexion...",
+    "signOutOthers": "Déconnecter les autres appareils",
+    "signingOutOthers": "Déconnexion des autres appareils...",
+    "revokeFailed": "Impossible de déconnecter cette session.",
+    "revokeOthersFailed": "Impossible de déconnecter les autres sessions."
+  },
 
   "status": {
     "pending": "En attente",

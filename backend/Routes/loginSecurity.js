@@ -1119,7 +1119,10 @@ router.get(
             "device",
             "location",
 
-            "environment",
+            "environment.trusted",
+            "environment.isNewBrowser",
+            "environment.isNewDevice",
+            "environment.isNewIp",
 
             "challenge.status",
             "challenge.expiresAt",

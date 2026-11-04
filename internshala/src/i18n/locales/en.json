@@ -465,6 +465,49 @@
     "logout": "Logout"
   },
 
+  "loginHistory": {
+    "title": "Login History",
+    "description": "Review recent login activity, devices, locations, and verification details.",
+    "loading": "Loading login history...",
+    "loadFailed": "Unable to load login history.",
+    "loginRequired": "You must be logged in to view login history.",
+    "empty": "No login activity found.",
+    "currentSession": "Current session",
+    "trusted": "Trusted",
+    "emailOtp": "Email OTP verified",
+    "noOtp": "No OTP required",
+    "newBrowser": "New browser",
+    "newDevice": "New device",
+    "newIp": "New IP address",
+    "failureReason": "Failure reason",
+    "status": {
+      "pending": "Pending",
+      "otp_pending": "OTP pending",
+      "success": "Successful",
+      "rejected": "Rejected",
+      "failed": "Failed"
+    }
+  },
+  "activeSessions": {
+    "title": "Active Sessions",
+    "description": "Manage devices and browsers currently signed in to your account.",
+    "loading": "Loading active sessions...",
+    "loadFailed": "Unable to load active sessions.",
+    "loginRequired": "You must be logged in to view active sessions.",
+    "empty": "No active sessions found.",
+    "current": "Current session",
+    "trusted": "Trusted",
+    "emailOtp": "Email OTP verified",
+    "noOtp": "No OTP required",
+    "lastActive": "Last active",
+    "signOut": "Sign out",
+    "signingOut": "Signing out...",
+    "signOutOthers": "Sign out other devices",
+    "signingOutOthers": "Signing out other devices...",
+    "revokeFailed": "Unable to sign out this session.",
+    "revokeOthersFailed": "Unable to sign out other sessions."
+  },
+
   "status": {
     "pending": "Pending",
     "approved": "Approved",
