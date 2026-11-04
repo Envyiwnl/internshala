@@ -1,5 +1,6 @@
 const express = require("express");
 const crypto = require("node:crypto");
+const mongoose = require("mongoose");
 
 const User = require("../Model/User");
 const SubscriptionPayment = require("../Model/SubscriptionPayment");
@@ -17,6 +18,12 @@ const { getCurrentSubscription } = require("../services/subscriptionService");
 const {
   createSubscriptionPaymentOrder,
 } = require("../services/razorpayService");
+
+const {
+  verifySubscriptionPayment,
+  inspectSubscriptionPayment,
+  closeSubscriptionOrder,
+} = require("../services/subscriptionPaymentService");
 
 const {
   isWithinSubscriptionPaymentWindow,
@@ -49,6 +56,43 @@ const normalizeBillingDetails = (details, user) => {
     postalCode: value(details?.postalCode),
     country: value(details?.country, "India"),
   };
+};
+
+const paymentErrorStatus = (code) => {
+  if (["PAYMENT_RECORD_NOT_FOUND"].includes(code)) return 404;
+
+  if (
+    [
+      "INVALID_PAYMENT_SIGNATURE",
+      "PAYMENT_ORDER_MISMATCH",
+      "PAYMENT_AMOUNT_MISMATCH",
+      "PAYMENT_CURRENCY_MISMATCH",
+    ].includes(code)
+  )
+    return 400;
+
+  if (
+    [
+      "PAYMENT_NOT_CAPTURED",
+      "PAYMENT_AWAITING_CAPTURE",
+      "PAYMENT_ALREADY_PROCESSED",
+      "VERIFIED_PAYMENT_REQUIRED",
+    ].includes(code)
+  )
+    return 409;
+
+  return 502;
+};
+
+const respondPaymentError = (res, error, operation) => {
+  console.error(`${operation} failed:`, error);
+
+  const code = error.message || "SUBSCRIPTION_PAYMENT_FAILED";
+  const status = paymentErrorStatus(code);
+
+  return res.status(status).json({
+    error: status === 502 ? "SUBSCRIPTION_PAYMENT_PROCESSING_FAILED" : code,
+  });
 };
 
 router.post("/create-order", async (req, res) => {
@@ -97,16 +141,31 @@ router.post("/create-order", async (req, res) => {
     });
 
     if (existingPayment) {
-      if (existingPayment.plan !== requestedPlan) {
+      const state = await inspectSubscriptionPayment({
+        userId: user._id,
+        paymentRecordId: existingPayment._id,
+      });
+
+      if (state.status === "paid") {
         return res.status(409).json({
-          error: "ANOTHER_SUBSCRIPTION_ORDER_PENDING",
+          error: "PREVIOUS_PAYMENT_COMPLETED",
           paymentRecordId: existingPayment._id,
+          subscription: state,
         });
       }
 
-      return res
-        .status(200)
-        .json(formatSubscriptionOrder(existingPayment, true));
+      if (state.status === "created") {
+        if (existingPayment.plan !== requestedPlan) {
+          return res.status(409).json({
+            error: "ANOTHER_SUBSCRIPTION_ORDER_PENDING",
+            paymentRecordId: existingPayment._id,
+          });
+        }
+
+        return res
+          .status(200)
+          .json(formatSubscriptionOrder(existingPayment, true));
+      }
     }
 
     const subscription = await getCurrentSubscription(user._id);
@@ -185,6 +244,114 @@ router.post("/create-order", async (req, res) => {
     return res.status(500).json({
       error: "SUBSCRIPTION_ORDER_CREATION_FAILED",
     });
+  }
+});
+
+router.post("/verify-payment", async (req, res) => {
+  try {
+    const {
+      paymentRecordId,
+      razorpay_order_id,
+      razorpay_payment_id,
+      razorpay_signature,
+    } = req.body || {};
+
+    if (
+      !mongoose.isValidObjectId(paymentRecordId) ||
+      typeof razorpay_order_id !== "string" ||
+      typeof razorpay_payment_id !== "string" ||
+      typeof razorpay_signature !== "string" ||
+      !/^[-_a-zA-Z0-9]+$/.test(razorpay_order_id) ||
+      !/^[-_a-zA-Z0-9]+$/.test(razorpay_payment_id) ||
+      !/^[a-fA-F0-9]{64}$/.test(razorpay_signature)
+    ) {
+      return res.status(400).json({
+        error: "INVALID_PAYMENT_DETAILS",
+      });
+    }
+
+    const user = await User.findOne({
+      firebaseUid: req.firebaseUser.uid,
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: "USER_NOT_FOUND" });
+    }
+
+    const result = await verifySubscriptionPayment({
+      userId: user._id,
+      paymentRecordId,
+      razorpayOrderId: razorpay_order_id,
+      razorpayPaymentId: razorpay_payment_id,
+      razorpaySignature: razorpay_signature,
+    });
+
+    return res.status(200).json({
+      message: result.alreadyActivated
+        ? "PAYMENT_ALREADY_VERIFIED"
+        : "SUBSCRIPTION_ACTIVATED",
+      ...result,
+    });
+  } catch (error) {
+    return respondPaymentError(res, error, "Subscription verification");
+  }
+});
+
+router.post("/sync-payment", async (req, res) => {
+  try {
+    const { paymentRecordId } = req.body || {};
+
+    if (!mongoose.isValidObjectId(paymentRecordId)) {
+      return res.status(400).json({
+        error: "INVALID_PAYMENT_RECORD_ID",
+      });
+    }
+
+    const user = await User.findOne({
+      firebaseUid: req.firebaseUser.uid,
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: "USER_NOT_FOUND" });
+    }
+
+    const result = await inspectSubscriptionPayment({
+      userId: user._id,
+      paymentRecordId,
+    });
+
+    return res.status(200).json(result);
+  } catch (error) {
+    return respondPaymentError(res, error, "Subscription payment sync");
+  }
+});
+
+router.post("/cancel-order", async (req, res) => {
+  try {
+    const { paymentRecordId } = req.body || {};
+
+    if (!mongoose.isValidObjectId(paymentRecordId)) {
+      return res.status(400).json({
+        error: "INVALID_PAYMENT_RECORD_ID",
+      });
+    }
+
+    const user = await User.findOne({
+      firebaseUid: req.firebaseUser.uid,
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: "USER_NOT_FOUND" });
+    }
+
+    const result = await closeSubscriptionOrder({
+      userId: user._id,
+      paymentRecordId,
+    });
+
+    return res.status(200).json(result);
+  } catch (error) {
+    return respondPaymentError(res, error, "Subscription order cancellation");
   }
 });
 

@@ -202,24 +202,20 @@ const cancelSubscription = async (userId, now = new Date()) => {
 const activatePaidSubscription = async ({
   userId,
   paymentId,
+  gatewayPayment,
   now = new Date(),
 }) => {
   return mongoose.connection.transaction(async (session) => {
     const user = await User.findById(userId).session(session);
 
-    if (!user) {
-      throw new Error("USER_NOT_FOUND");
-    }
+    if (!user) throw new Error("USER_NOT_FOUND");
 
     const payment = await SubscriptionPayment.findOne({
       _id: paymentId,
       user: user._id,
-      status: "paid",
     }).session(session);
 
-    if (!payment || !payment.razorpayPaymentId) {
-      throw new Error("VERIFIED_PAYMENT_REQUIRED");
-    }
+    if (!payment) throw new Error("PAYMENT_RECORD_NOT_FOUND");
 
     const plan = getSubscriptionPlan(payment.plan);
 
@@ -232,15 +228,45 @@ const activatePaidSubscription = async ({
       throw new Error("INVALID_SUBSCRIPTION_PAYMENT");
     }
 
-    const existingHistory = await SubscriptionHistory.findOne({
+    if (
+      !gatewayPayment ||
+      gatewayPayment.order_id !== payment.razorpayOrderId ||
+      Number(gatewayPayment.amount) !== payment.amount ||
+      gatewayPayment.currency !== payment.currency ||
+      gatewayPayment.status !== "captured" ||
+      gatewayPayment.captured !== true ||
+      !gatewayPayment.id
+    ) {
+      throw new Error("VERIFIED_PAYMENT_REQUIRED");
+    }
+
+    const previousActivation = await SubscriptionHistory.findOne({
       payment: payment._id,
     }).session(session);
 
-    if (existingHistory) {
+    if (previousActivation) {
+      if (
+        payment.razorpayPaymentId !== gatewayPayment.id ||
+        payment.status !== "paid"
+      ) {
+        throw new Error("PAYMENT_ALREADY_PROCESSED");
+      }
+
       return {
         alreadyActivated: true,
-        subscription: user.subscription.toObject(),
+        paymentRecordId: payment._id,
+        plan: payment.plan,
+        cycleStart: payment.subscriptionStart,
+        cycleEnd: payment.subscriptionEnd,
+        invoiceNumber: payment.invoiceNumber,
       };
+    }
+
+    if (
+      payment.status === "paid" &&
+      payment.razorpayPaymentId !== gatewayPayment.id
+    ) {
+      throw new Error("PAYMENT_ALREADY_PROCESSED");
     }
 
     await reconcileSubscription(user, now, session);
@@ -260,6 +286,32 @@ const activatePaidSubscription = async ({
 
     const cycleStart = now;
     const cycleEnd = addBillingMonth(now);
+    const invoiceNumber = `SUB-${payment._id.toString().slice(-12).toUpperCase()}`;
+
+    const updatedPayment = await SubscriptionPayment.updateOne(
+      {
+        _id: payment._id,
+        status: { $in: ["created", "failed", "cancelled"] },
+      },
+      {
+        $set: {
+          status: "paid",
+          razorpayPaymentId: gatewayPayment.id,
+          paidAt: now,
+          failedAt: null,
+          cancelledAt: null,
+          failureReason: "",
+          invoiceNumber,
+          subscriptionStart: cycleStart,
+          subscriptionEnd: cycleEnd,
+        },
+      },
+      { session },
+    );
+
+    if (updatedPayment.modifiedCount !== 1) {
+      throw new Error("PAYMENT_ALREADY_PROCESSED");
+    }
 
     user.subscription.plan = payment.plan;
     user.subscription.status = "active";
@@ -273,17 +325,6 @@ const activatePaidSubscription = async ({
 
     await user.save({ session });
 
-    await SubscriptionPayment.updateOne(
-      { _id: payment._id },
-      {
-        $set: {
-          subscriptionStart: cycleStart,
-          subscriptionEnd: cycleEnd,
-        },
-      },
-      { session },
-    );
-
     await recordHistory({
       user,
       action,
@@ -295,10 +336,12 @@ const activatePaidSubscription = async ({
 
     return {
       activated: true,
+      paymentRecordId: payment._id,
       plan: payment.plan,
       cycleStart,
       cycleEnd,
       applicationLimit: plan.applicationLimit,
+      invoiceNumber,
     };
   });
 };
