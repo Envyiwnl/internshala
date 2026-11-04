@@ -225,8 +225,10 @@ router.post("/french/verify-otp", async (req, res) => {
     }
 
     if (user.preferredLanguage === "fr") {
-      return res.status(400).json({
-        error: "ALREADY_USING_FRENCH",
+      return res.status(200).json({
+        message: "OTP_VERIFIED",
+        preferredLanguage: "fr",
+        recovered: true,
       });
     }
 
