@@ -60,6 +60,16 @@ const SubscriptionHistorySchema = new mongoose.Schema(
 
 SubscriptionHistorySchema.index({ user: 1, createdAt: -1 });
 
+SubscriptionHistorySchema.index(
+  { payment: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      payment: { $type: "objectId" },
+    },
+  },
+);
+
 module.exports = mongoose.model(
   "SubscriptionHistory",
   SubscriptionHistorySchema,
