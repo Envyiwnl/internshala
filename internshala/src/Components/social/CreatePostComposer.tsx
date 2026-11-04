@@ -12,6 +12,7 @@ import { useSelector } from "react-redux";
 import { useTranslation } from "react-i18next";
 import { selectuser } from "@/feature/userSlice";
 import { auth } from "@/firebase/firebase";
+import { authenticatedFetch } from "@/utils/authenticatedFetch";
 import { toast } from "react-toastify";
 
 type Privacy = "public" | "friends" | "followers" | "private";
@@ -122,20 +123,18 @@ export default function CreatePostComposer({
     let uploadedMediaId = "";
 
     try {
-      const idToken = await firebaseUser.getIdToken();
-
       if (mediaFile) {
         const formData = new FormData();
 
         formData.append("media", mediaFile);
 
-        const mediaResponse = await fetch(`${API_URL}/api/media/upload`, {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${idToken}`,
+        const mediaResponse = await authenticatedFetch(
+          `${API_URL}/api/media/upload`,
+          {
+            method: "POST",
+            body: formData,
           },
-          body: formData,
-        });
+        );
 
         const mediaData = await mediaResponse.json();
 
@@ -146,15 +145,17 @@ export default function CreatePostComposer({
         uploadedMediaId = mediaData.media.id;
       }
 
-      const postResponse = await fetch(`${API_URL}/api/posts`, {
+      const postResponse = await authenticatedFetch(`${API_URL}/api/posts`, {
         method: "POST",
+
         headers: {
-          Authorization: `Bearer ${idToken}`,
           "Content-Type": "application/json",
         },
+
         body: JSON.stringify({
           text: trimmedText,
           privacy,
+
           ...(uploadedMediaId
             ? {
                 mediaId: uploadedMediaId,
@@ -168,12 +169,12 @@ export default function CreatePostComposer({
       if (!postResponse.ok) {
         if (uploadedMediaId) {
           try {
-            await fetch(`${API_URL}/api/media/${uploadedMediaId}`, {
-              method: "DELETE",
-              headers: {
-                Authorization: `Bearer ${idToken}`,
+            await authenticatedFetch(
+              `${API_URL}/api/media/${uploadedMediaId}`,
+              {
+                method: "DELETE",
               },
-            });
+            );
           } catch (cleanupError) {
             console.error("Staged media cleanup failed:", cleanupError);
           }

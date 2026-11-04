@@ -14,10 +14,11 @@ const {
 } = require("../config/socialConfig");
 
 const verifyFirebaseToken = require("../middleware/verifyFirebaseToken");
+const verifyLoginSession = require("../middleware/verifyLoginSession");
 
 const router = express.Router();
 
-router.use(verifyFirebaseToken);
+router.use(verifyFirebaseToken, verifyLoginSession);
 
 const getCurrentUser = async (req) => {
   return User.findOne({

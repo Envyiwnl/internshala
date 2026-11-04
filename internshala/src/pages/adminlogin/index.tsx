@@ -1,7 +1,7 @@
-import axios from "axios";
+import { setAdminSession } from "@/utils/adminSession";
 import { Lock, User } from "lucide-react";
 import { useRouter } from "next/router";
-import React, { useState } from "react";
+import { SubmitEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "react-toastify";
 
@@ -25,7 +25,7 @@ const index = () => {
     }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     if (!formdata.username || !formdata.password) {
@@ -36,14 +36,34 @@ const index = () => {
     try {
       setisloading(true);
 
-      await axios.post(
+      const response = await fetch(
         "https://internshala-78tb.onrender.com/api/admin/adminlogin",
-        formdata,
+        {
+          method: "POST",
+
+          headers: {
+            "Content-Type": "application/json",
+          },
+
+          body: JSON.stringify(formdata),
+        },
       );
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(data.error || "ADMIN_LOGIN_FAILED");
+      }
+
+      if (!data.adminSession || !data.expiresAt) {
+        throw new Error("ADMIN_SESSION_MISSING");
+      }
+
+      setAdminSession(data.adminSession, data.expiresAt);
 
       toast.success(t("admin.loginSuccess"));
 
-      router.push("/adminpanel");
+      await router.push("/adminpanel");
     } catch (error) {
       console.log(error);
 

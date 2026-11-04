@@ -5,6 +5,7 @@ const mongoose = require("mongoose");
 const ResumeOtp = require("../Model/ResumeOtp");
 const User = require("../Model/User");
 const verifyFirebaseToken = require("../middleware/verifyFirebaseToken");
+const verifyLoginSession = require("../middleware/verifyLoginSession");
 const requirePremium = require("../middleware/requirePremium");
 const { sendResumeOtp } = require("../services/resumeEmailService");
 const { generateResumePdf } = require("../services/resumePdfService");
@@ -28,6 +29,8 @@ const {
 
 const router = express.Router();
 
+router.use(verifyFirebaseToken, verifyLoginSession);
+
 const OTP_EXPIRY_MS = 10 * 60 * 1000;
 const OTP_VERIFICATION_WINDOW_MS = 10 * 60 * 1000;
 const OTP_COOLDOWN_MS = 60 * 1000;
@@ -46,7 +49,7 @@ const hashOtp = (userId, otp) => {
     .digest("hex");
 };
 
-router.get("/", verifyFirebaseToken, requirePremium, async (req, res) => {
+router.get("/", requirePremium, async (req, res) => {
   try {
     const user = req.dbUser;
 
@@ -68,7 +71,7 @@ router.get("/", verifyFirebaseToken, requirePremium, async (req, res) => {
   }
 });
 
-router.post("/draft", verifyFirebaseToken, requirePremium, async (req, res) => {
+router.post("/draft", requirePremium, async (req, res) => {
   try {
     const user = req.dbUser;
 
@@ -101,374 +104,103 @@ router.post("/draft", verifyFirebaseToken, requirePremium, async (req, res) => {
   }
 });
 
-router.put(
-  "/:resumeId",
-  verifyFirebaseToken,
-  requirePremium,
-  async (req, res) => {
-    try {
-      const user = req.dbUser;
+router.put("/:resumeId", requirePremium, async (req, res) => {
+  try {
+    const user = req.dbUser;
 
-      const resume = await Resume.findOne({
-        _id: req.params.resumeId,
-        user: user._id,
-      });
+    const resume = await Resume.findOne({
+      _id: req.params.resumeId,
+      user: user._id,
+    });
 
-      if (!resume) {
-        return res.status(404).json({
-          error: "RESUME_NOT_FOUND",
-        });
-      }
-
-      const { title, content, customization } = req.body;
-
-      if (typeof title === "string") {
-        resume.title = title.trim() || "My Resume";
-      }
-
-      if (content) {
-        resume.content = content;
-      }
-
-      if (customization) {
-        resume.customization = customization;
-      }
-
-      await resume.save();
-
-      return res.status(200).json({
-        message: "RESUME_DRAFT_UPDATED",
-        resume,
-      });
-    } catch (error) {
-      console.error("Resume update failed:", error);
-
-      return res.status(500).json({
-        error: "RESUME_UPDATE_FAILED",
+    if (!resume) {
+      return res.status(404).json({
+        error: "RESUME_NOT_FOUND",
       });
     }
-  },
-);
 
-router.delete(
-  "/:resumeId",
-  verifyFirebaseToken,
-  requirePremium,
-  async (req, res) => {
-    try {
-      const user = req.dbUser;
+    const { title, content, customization } = req.body;
 
-      const resume = await Resume.findOne({
-        _id: req.params.resumeId,
-        user: user._id,
+    if (typeof title === "string") {
+      resume.title = title.trim() || "My Resume";
+    }
+
+    if (content) {
+      resume.content = content;
+    }
+
+    if (customization) {
+      resume.customization = customization;
+    }
+
+    await resume.save();
+
+    return res.status(200).json({
+      message: "RESUME_DRAFT_UPDATED",
+      resume,
+    });
+  } catch (error) {
+    console.error("Resume update failed:", error);
+
+    return res.status(500).json({
+      error: "RESUME_UPDATE_FAILED",
+    });
+  }
+});
+
+router.delete("/:resumeId", requirePremium, async (req, res) => {
+  try {
+    const user = req.dbUser;
+
+    const resume = await Resume.findOne({
+      _id: req.params.resumeId,
+      user: user._id,
+    });
+
+    if (!resume) {
+      return res.status(404).json({
+        error: "RESUME_NOT_FOUND",
       });
+    }
 
-      if (!resume) {
-        return res.status(404).json({
-          error: "RESUME_NOT_FOUND",
-        });
-      }
-
-      if (resume.status === "generated" || resume.versions.length > 0) {
-        return res.status(409).json({
-          error: "GENERATED_RESUME_CANNOT_BE_DELETED",
-        });
-      }
-
-      await Resume.deleteOne({
-        _id: resume._id,
+    if (resume.status === "generated" || resume.versions.length > 0) {
+      return res.status(409).json({
+        error: "GENERATED_RESUME_CANNOT_BE_DELETED",
       });
+    }
 
-      const userUpdate = {
-        $pull: {
-          resumes: resume._id,
-        },
+    await Resume.deleteOne({
+      _id: resume._id,
+    });
+
+    const userUpdate = {
+      $pull: {
+        resumes: resume._id,
+      },
+    };
+
+    if (user.defaultResume?.equals(resume._id)) {
+      userUpdate.$unset = {
+        defaultResume: 1,
       };
-
-      if (user.defaultResume?.equals(resume._id)) {
-        userUpdate.$unset = {
-          defaultResume: 1,
-        };
-      }
-
-      await User.findByIdAndUpdate(user._id, userUpdate);
-
-      return res.status(200).json({
-        message: "RESUME_DRAFT_DELETED",
-      });
-    } catch (error) {
-      console.error("Resume deletion failed:", error);
-
-      return res.status(500).json({
-        error: "RESUME_DELETE_FAILED",
-      });
     }
-  },
-);
 
-router.post(
-  "/request-otp",
-  verifyFirebaseToken,
-  requirePremium,
-  async (req, res) => {
-    try {
-      const user = req.dbUser;
-      const { resumeId } = req.body;
+    await User.findByIdAndUpdate(user._id, userUpdate);
 
-      if (!resumeId) {
-        return res.status(400).json({
-          error: "RESUME_ID_REQUIRED",
-        });
-      }
+    return res.status(200).json({
+      message: "RESUME_DRAFT_DELETED",
+    });
+  } catch (error) {
+    console.error("Resume deletion failed:", error);
 
-      const resume = await Resume.findOne({
-        _id: resumeId,
-        user: user._id,
-      });
+    return res.status(500).json({
+      error: "RESUME_DELETE_FAILED",
+    });
+  }
+});
 
-      if (!resume) {
-        return res.status(404).json({
-          error: "RESUME_NOT_FOUND",
-        });
-      }
-
-      const validation = validateResume(resume);
-
-      if (!validation.isValid) {
-        return res.status(400).json({
-          error: "INCOMPLETE_RESUME",
-          details: validation.errors,
-        });
-      }
-
-      if (!user.email) {
-        return res.status(400).json({
-          error: "EMAIL_NOT_AVAILABLE",
-        });
-      }
-
-      const now = new Date();
-
-      const existingOtp = await ResumeOtp.findOne({
-        user: user._id,
-      });
-
-      if (existingOtp?.lastSentAt) {
-        const timeSinceLastRequest =
-          now.getTime() - existingOtp.lastSentAt.getTime();
-
-        if (timeSinceLastRequest < OTP_COOLDOWN_MS) {
-          const retryAfter = Math.ceil(
-            (OTP_COOLDOWN_MS - timeSinceLastRequest) / 1000,
-          );
-
-          return res.status(429).json({
-            error: "OTP_RESEND_TOO_SOON",
-            retryAfter,
-          });
-        }
-      }
-
-      let requestCount = 1;
-      let requestWindowStartedAt = now;
-
-      if (existingOtp?.requestWindowStartedAt) {
-        const windowAge =
-          now.getTime() - existingOtp.requestWindowStartedAt.getTime();
-
-        if (windowAge < REQUEST_WINDOW_MS) {
-          if (existingOtp.requestCount >= MAX_REQUESTS_PER_WINDOW) {
-            return res.status(429).json({
-              error: "OTP_REQUEST_LIMIT_REACHED",
-            });
-          }
-
-          requestCount = existingOtp.requestCount + 1;
-
-          requestWindowStartedAt = existingOtp.requestWindowStartedAt;
-        }
-      }
-
-      const otp = crypto.randomInt(100000, 1000000).toString();
-
-      const otpHash = hashOtp(user._id.toString(), otp);
-
-      const expiresAt = new Date(now.getTime() + OTP_EXPIRY_MS);
-
-      await sendResumeOtp({
-        email: user.email,
-        otp,
-        language: user.preferredLanguage,
-      });
-
-      await ResumeOtp.findOneAndUpdate(
-        {
-          user: user._id,
-        },
-        {
-          $set: {
-            resume: resume._id,
-
-            purpose: "resume-payment",
-
-            otpHash,
-
-            expiresAt,
-
-            attempts: 0,
-
-            requestCount,
-
-            requestWindowStartedAt,
-
-            lastSentAt: now,
-
-            verifiedAt: null,
-
-            verifiedUntil: null,
-
-            consumedAt: null,
-          },
-        },
-        {
-          upsert: true,
-          new: true,
-          setDefaultsOnInsert: true,
-        },
-      );
-
-      return res.status(200).json({
-        message: "OTP_SENT",
-        expiresIn: 600,
-        resumeId: resume._id,
-      });
-    } catch (error) {
-      console.error("Resume OTP request failed:", error);
-
-      return res.status(500).json({
-        error: "OTP_SEND_FAILED",
-      });
-    }
-  },
-);
-
-router.post(
-  "/verify-otp",
-  verifyFirebaseToken,
-  requirePremium,
-  async (req, res) => {
-    try {
-      const user = req.dbUser;
-
-      const { otp, resumeId } = req.body;
-
-      if (!resumeId) {
-        return res.status(400).json({
-          error: "RESUME_ID_REQUIRED",
-        });
-      }
-
-      if (!otp || !/^\d{6}$/.test(otp)) {
-        return res.status(400).json({
-          error: "INVALID_OTP_FORMAT",
-        });
-      }
-
-      const otpRecord = await ResumeOtp.findOne({
-        user: user._id,
-      });
-
-      if (!otpRecord) {
-        return res.status(400).json({
-          error: "OTP_NOT_FOUND",
-        });
-      }
-
-      if (
-        !otpRecord.resume ||
-        otpRecord.resume.toString() !== resumeId.toString()
-      ) {
-        return res.status(403).json({
-          error: "OTP_RESUME_MISMATCH",
-        });
-      }
-
-      if (otpRecord.consumedAt) {
-        return res.status(400).json({
-          error: "OTP_ALREADY_USED",
-        });
-      }
-
-      if (otpRecord.expiresAt.getTime() < Date.now()) {
-        return res.status(400).json({
-          error: "OTP_EXPIRED",
-        });
-      }
-
-      if (otpRecord.attempts >= MAX_OTP_ATTEMPTS) {
-        return res.status(429).json({
-          error: "OTP_TOO_MANY_ATTEMPTS",
-        });
-      }
-
-      const submittedHash = hashOtp(user._id.toString(), otp);
-
-      const storedBuffer = Buffer.from(otpRecord.otpHash, "hex");
-
-      const submittedBuffer = Buffer.from(submittedHash, "hex");
-
-      const isValid =
-        storedBuffer.length === submittedBuffer.length &&
-        crypto.timingSafeEqual(storedBuffer, submittedBuffer);
-
-      if (!isValid) {
-        otpRecord.attempts += 1;
-
-        await otpRecord.save();
-
-        const attemptsLeft = MAX_OTP_ATTEMPTS - otpRecord.attempts;
-
-        if (attemptsLeft <= 0) {
-          return res.status(429).json({
-            error: "OTP_TOO_MANY_ATTEMPTS",
-          });
-        }
-
-        return res.status(400).json({
-          error: "INVALID_OTP",
-          attemptsLeft,
-        });
-      }
-
-      const verifiedAt = new Date();
-
-      otpRecord.verifiedAt = verifiedAt;
-
-      otpRecord.verifiedUntil = new Date(
-        verifiedAt.getTime() + OTP_VERIFICATION_WINDOW_MS,
-      );
-
-      await otpRecord.save();
-
-      return res.status(200).json({
-        message: "OTP_VERIFIED",
-        verifiedFor: 600,
-      });
-    } catch (error) {
-      console.error("Resume OTP verification failed:", error);
-
-      return res.status(500).json({
-        error: "OTP_VERIFICATION_FAILED",
-      });
-    }
-  },
-);
-
-router.post(
-  "/create-order",
-  verifyFirebaseToken,
-  requirePremium,
-  async (req, res) => {
+router.post("/request-otp", requirePremium, async (req, res) => {
+  try {
     const user = req.dbUser;
     const { resumeId } = req.body;
 
@@ -478,186 +210,292 @@ router.post(
       });
     }
 
-    try {
-      const resume = await Resume.findOne({
-        _id: resumeId,
-        user: user._id,
+    const resume = await Resume.findOne({
+      _id: resumeId,
+      user: user._id,
+    });
+
+    if (!resume) {
+      return res.status(404).json({
+        error: "RESUME_NOT_FOUND",
       });
+    }
 
-      if (!resume) {
-        return res.status(404).json({
-          error: "RESUME_NOT_FOUND",
-        });
-      }
+    const validation = validateResume(resume);
 
-      const validation = validateResume(resume);
-
-      if (!validation.isValid) {
-        return res.status(400).json({
-          error: "INCOMPLETE_RESUME",
-          details: validation.errors,
-        });
-      }
-
-      if (!process.env.RAZORPAY_KEY_ID?.startsWith("rzp_test_")) {
-        return res.status(500).json({
-          error: "RAZORPAY_TEST_MODE_REQUIRED",
-        });
-      }
-
-      const existingPayment = await ResumePayment.findOne({
-        user: user._id,
-        resume: resume._id,
-        status: "created",
-      }).sort({
-        createdAt: -1,
+    if (!validation.isValid) {
+      return res.status(400).json({
+        error: "INCOMPLETE_RESUME",
+        details: validation.errors,
       });
+    }
 
-      if (existingPayment) {
-        const orderAge = Date.now() - existingPayment.createdAt.getTime();
+    if (!user.email) {
+      return res.status(400).json({
+        error: "EMAIL_NOT_AVAILABLE",
+      });
+    }
 
-        if (orderAge < ACTIVE_ORDER_WINDOW_MS) {
-          return res.status(200).json({
-            message: "ORDER_ALREADY_EXISTS",
+    const now = new Date();
 
-            order: {
-              id: existingPayment.razorpayOrderId,
+    const existingOtp = await ResumeOtp.findOne({
+      user: user._id,
+    });
 
-              amount: existingPayment.amount,
+    if (existingOtp?.lastSentAt) {
+      const timeSinceLastRequest =
+        now.getTime() - existingOtp.lastSentAt.getTime();
 
-              currency: existingPayment.currency,
-            },
+      if (timeSinceLastRequest < OTP_COOLDOWN_MS) {
+        const retryAfter = Math.ceil(
+          (OTP_COOLDOWN_MS - timeSinceLastRequest) / 1000,
+        );
 
-            paymentRecordId: existingPayment._id,
+        return res.status(429).json({
+          error: "OTP_RESEND_TOO_SOON",
+          retryAfter,
+        });
+      }
+    }
 
-            keyId: process.env.RAZORPAY_KEY_ID,
+    let requestCount = 1;
+    let requestWindowStartedAt = now;
 
-            testMode: true,
+    if (existingOtp?.requestWindowStartedAt) {
+      const windowAge =
+        now.getTime() - existingOtp.requestWindowStartedAt.getTime();
 
-            reused: true,
+      if (windowAge < REQUEST_WINDOW_MS) {
+        if (existingOtp.requestCount >= MAX_REQUESTS_PER_WINDOW) {
+          return res.status(429).json({
+            error: "OTP_REQUEST_LIMIT_REACHED",
           });
         }
 
-        const orderPayments = await fetchRazorpayOrderPayments(
-          existingPayment.razorpayOrderId,
-        );
+        requestCount = existingOtp.requestCount + 1;
 
-        const paymentAttempts = Array.isArray(orderPayments?.items)
-          ? orderPayments.items
-          : [];
+        requestWindowStartedAt = existingOtp.requestWindowStartedAt;
+      }
+    }
 
-        const capturedPayment = paymentAttempts.find(
-          (attempt) =>
-            attempt.order_id === existingPayment.razorpayOrderId &&
-            Number(attempt.amount) === RESUME_PRICE_PAISE &&
-            attempt.currency === "INR" &&
-            attempt.status === "captured" &&
-            attempt.captured === true,
-        );
+    const otp = crypto.randomInt(100000, 1000000).toString();
 
-        if (capturedPayment) {
-          const duplicatePayment = await ResumePayment.findOne({
-            _id: {
-              $ne: existingPayment._id,
-            },
+    const otpHash = hashOtp(user._id.toString(), otp);
 
-            razorpayPaymentId: capturedPayment.id,
+    const expiresAt = new Date(now.getTime() + OTP_EXPIRY_MS);
 
-            status: "paid",
-          });
+    await sendResumeOtp({
+      email: user.email,
+      otp,
+      language: user.preferredLanguage,
+    });
 
-          if (duplicatePayment) {
-            return res.status(409).json({
-              error: "DUPLICATE_PAYMENT",
-            });
-          }
+    await ResumeOtp.findOneAndUpdate(
+      {
+        user: user._id,
+      },
+      {
+        $set: {
+          resume: resume._id,
 
-          const paidAt = capturedPayment.captured_at
-            ? new Date(capturedPayment.captured_at * 1000)
-            : new Date();
+          purpose: "resume-payment",
 
-          const invoiceNumber =
-            existingPayment.invoiceNumber ||
-            `INV-${paidAt.getTime()}-${capturedPayment.id
-              .slice(-6)
-              .toUpperCase()}`;
+          otpHash,
 
-          const recoveredPayment = await ResumePayment.findOneAndUpdate(
-            {
-              _id: existingPayment._id,
+          expiresAt,
 
-              user: user._id,
+          attempts: 0,
 
-              resume: resume._id,
+          requestCount,
 
-              status: "created",
-            },
-            {
-              $set: {
-                razorpayPaymentId: capturedPayment.id,
+          requestWindowStartedAt,
 
-                status: "paid",
+          lastSentAt: now,
 
-                paidAt,
+          verifiedAt: null,
 
-                failedAt: null,
+          verifiedUntil: null,
 
-                cancelledAt: null,
+          consumedAt: null,
+        },
+      },
+      {
+        upsert: true,
+        new: true,
+        setDefaultsOnInsert: true,
+      },
+    );
 
-                invoiceNumber,
+    return res.status(200).json({
+      message: "OTP_SENT",
+      expiresIn: 600,
+      resumeId: resume._id,
+    });
+  } catch (error) {
+    console.error("Resume OTP request failed:", error);
 
-                failureReason: "",
-              },
-            },
-            {
-              new: true,
-            },
-          );
+    return res.status(500).json({
+      error: "OTP_SEND_FAILED",
+    });
+  }
+});
 
-          if (!recoveredPayment) {
-            const latestPayment = await ResumePayment.findById(
-              existingPayment._id,
-            );
+router.post("/verify-otp", requirePremium, async (req, res) => {
+  try {
+    const user = req.dbUser;
 
-            if (
-              latestPayment?.status === "paid" &&
-              latestPayment.razorpayPaymentId === capturedPayment.id
-            ) {
-              return res.status(200).json({
-                message: "PAYMENT_ALREADY_VERIFIED",
+    const { otp, resumeId } = req.body;
 
-                status: "paid",
+    if (!resumeId) {
+      return res.status(400).json({
+        error: "RESUME_ID_REQUIRED",
+      });
+    }
 
-                paymentRecordId: latestPayment._id,
+    if (!otp || !/^\d{6}$/.test(otp)) {
+      return res.status(400).json({
+        error: "INVALID_OTP_FORMAT",
+      });
+    }
 
-                resumeId: latestPayment.resume,
+    const otpRecord = await ResumeOtp.findOne({
+      user: user._id,
+    });
 
-                invoiceNumber: latestPayment.invoiceNumber,
+    if (!otpRecord) {
+      return res.status(400).json({
+        error: "OTP_NOT_FOUND",
+      });
+    }
 
-                requiresGeneration: true,
-              });
-            }
+    if (
+      !otpRecord.resume ||
+      otpRecord.resume.toString() !== resumeId.toString()
+    ) {
+      return res.status(403).json({
+        error: "OTP_RESUME_MISMATCH",
+      });
+    }
 
-            return res.status(409).json({
-              error: "PAYMENT_ALREADY_PROCESSED",
-            });
-          }
+    if (otpRecord.consumedAt) {
+      return res.status(400).json({
+        error: "OTP_ALREADY_USED",
+      });
+    }
 
-          return res.status(200).json({
-            message: "PAYMENT_RECOVERED",
+    if (otpRecord.expiresAt.getTime() < Date.now()) {
+      return res.status(400).json({
+        error: "OTP_EXPIRED",
+      });
+    }
 
-            status: "paid",
+    if (otpRecord.attempts >= MAX_OTP_ATTEMPTS) {
+      return res.status(429).json({
+        error: "OTP_TOO_MANY_ATTEMPTS",
+      });
+    }
 
-            paymentRecordId: recoveredPayment._id,
+    const submittedHash = hashOtp(user._id.toString(), otp);
 
-            resumeId: recoveredPayment.resume,
+    const storedBuffer = Buffer.from(otpRecord.otpHash, "hex");
 
-            invoiceNumber: recoveredPayment.invoiceNumber,
+    const submittedBuffer = Buffer.from(submittedHash, "hex");
 
-            requiresGeneration: true,
-          });
-        }
+    const isValid =
+      storedBuffer.length === submittedBuffer.length &&
+      crypto.timingSafeEqual(storedBuffer, submittedBuffer);
 
+    if (!isValid) {
+      otpRecord.attempts += 1;
+
+      await otpRecord.save();
+
+      const attemptsLeft = MAX_OTP_ATTEMPTS - otpRecord.attempts;
+
+      if (attemptsLeft <= 0) {
+        return res.status(429).json({
+          error: "OTP_TOO_MANY_ATTEMPTS",
+        });
+      }
+
+      return res.status(400).json({
+        error: "INVALID_OTP",
+        attemptsLeft,
+      });
+    }
+
+    const verifiedAt = new Date();
+
+    otpRecord.verifiedAt = verifiedAt;
+
+    otpRecord.verifiedUntil = new Date(
+      verifiedAt.getTime() + OTP_VERIFICATION_WINDOW_MS,
+    );
+
+    await otpRecord.save();
+
+    return res.status(200).json({
+      message: "OTP_VERIFIED",
+      verifiedFor: 600,
+    });
+  } catch (error) {
+    console.error("Resume OTP verification failed:", error);
+
+    return res.status(500).json({
+      error: "OTP_VERIFICATION_FAILED",
+    });
+  }
+});
+
+router.post("/create-order", requirePremium, async (req, res) => {
+  const user = req.dbUser;
+  const { resumeId } = req.body;
+
+  if (!resumeId) {
+    return res.status(400).json({
+      error: "RESUME_ID_REQUIRED",
+    });
+  }
+
+  try {
+    const resume = await Resume.findOne({
+      _id: resumeId,
+      user: user._id,
+    });
+
+    if (!resume) {
+      return res.status(404).json({
+        error: "RESUME_NOT_FOUND",
+      });
+    }
+
+    const validation = validateResume(resume);
+
+    if (!validation.isValid) {
+      return res.status(400).json({
+        error: "INCOMPLETE_RESUME",
+        details: validation.errors,
+      });
+    }
+
+    if (!process.env.RAZORPAY_KEY_ID?.startsWith("rzp_test_")) {
+      return res.status(500).json({
+        error: "RAZORPAY_TEST_MODE_REQUIRED",
+      });
+    }
+
+    const existingPayment = await ResumePayment.findOne({
+      user: user._id,
+      resume: resume._id,
+      status: "created",
+    }).sort({
+      createdAt: -1,
+    });
+
+    if (existingPayment) {
+      const orderAge = Date.now() - existingPayment.createdAt.getTime();
+
+      if (orderAge < ACTIVE_ORDER_WINDOW_MS) {
         return res.status(200).json({
           message: "ORDER_ALREADY_EXISTS",
 
@@ -679,436 +517,656 @@ router.post(
         });
       }
 
-      const otpRecord = await ResumeOtp.findOne({
-        user: user._id,
-      });
-
-      if (!otpRecord) {
-        return res.status(403).json({
-          error: "OTP_VERIFICATION_REQUIRED",
-        });
-      }
-
-      if (
-        !otpRecord.resume ||
-        otpRecord.resume.toString() !== resume._id.toString()
-      ) {
-        return res.status(403).json({
-          error: "OTP_RESUME_MISMATCH",
-        });
-      }
-
-      if (!otpRecord.verifiedAt) {
-        return res.status(403).json({
-          error: "OTP_VERIFICATION_REQUIRED",
-        });
-      }
-
-      if (
-        !otpRecord.verifiedUntil ||
-        otpRecord.verifiedUntil.getTime() < Date.now()
-      ) {
-        return res.status(403).json({
-          error: "OTP_VERIFICATION_EXPIRED",
-        });
-      }
-
-      if (otpRecord.consumedAt) {
-        return res.status(409).json({
-          error: "OTP_ALREADY_USED",
-        });
-      }
-
-      const consumedAt = new Date();
-
-      const reservedOtp = await ResumeOtp.findOneAndUpdate(
-        {
-          _id: otpRecord._id,
-
-          resume: resume._id,
-
-          consumedAt: null,
-
-          verifiedAt: {
-            $ne: null,
-          },
-
-          verifiedUntil: {
-            $gt: consumedAt,
-          },
-        },
-        {
-          $set: {
-            consumedAt,
-          },
-        },
-        {
-          new: true,
-        },
+      const orderPayments = await fetchRazorpayOrderPayments(
+        existingPayment.razorpayOrderId,
       );
 
-      if (!reservedOtp) {
-        return res.status(409).json({
-          error: "OTP_ALREADY_USED_OR_EXPIRED",
-        });
-      }
+      const paymentAttempts = Array.isArray(orderPayments?.items)
+        ? orderPayments.items
+        : [];
 
-      try {
-        const receipt = `resume_${user._id.toString().slice(-8)}_${Date.now()}`;
+      const capturedPayment = paymentAttempts.find(
+        (attempt) =>
+          attempt.order_id === existingPayment.razorpayOrderId &&
+          Number(attempt.amount) === RESUME_PRICE_PAISE &&
+          attempt.currency === "INR" &&
+          attempt.status === "captured" &&
+          attempt.captured === true,
+      );
 
-        const razorpayOrder = await createResumePaymentOrder({
-          amount: RESUME_PRICE_PAISE,
-
-          receipt,
-        });
-
-        const payment = await ResumePayment.create({
-          user: user._id,
-
-          resume: resume._id,
-
-          amount: RESUME_PRICE_PAISE,
-
-          currency: "INR",
-
-          razorpayOrderId: razorpayOrder.id,
-
-          status: "created",
-
-          otpVerified: true,
-
-          otpVerifiedAt: reservedOtp.verifiedAt,
-
-          testMode: true,
-        });
-
-        return res.status(201).json({
-          message: "ORDER_CREATED",
-
-          order: {
-            id: razorpayOrder.id,
-
-            amount: razorpayOrder.amount,
-
-            currency: razorpayOrder.currency,
+      if (capturedPayment) {
+        const duplicatePayment = await ResumePayment.findOne({
+          _id: {
+            $ne: existingPayment._id,
           },
 
-          paymentRecordId: payment._id,
+          razorpayPaymentId: capturedPayment.id,
 
-          keyId: process.env.RAZORPAY_KEY_ID,
-
-          testMode: true,
-
-          reused: false,
+          status: "paid",
         });
-      } catch (paymentError) {
-        await ResumeOtp.updateOne(
+
+        if (duplicatePayment) {
+          return res.status(409).json({
+            error: "DUPLICATE_PAYMENT",
+          });
+        }
+
+        const paidAt = capturedPayment.captured_at
+          ? new Date(capturedPayment.captured_at * 1000)
+          : new Date();
+
+        const invoiceNumber =
+          existingPayment.invoiceNumber ||
+          `INV-${paidAt.getTime()}-${capturedPayment.id
+            .slice(-6)
+            .toUpperCase()}`;
+
+        const recoveredPayment = await ResumePayment.findOneAndUpdate(
           {
-            _id: reservedOtp._id,
-            consumedAt,
+            _id: existingPayment._id,
+
+            user: user._id,
+
+            resume: resume._id,
+
+            status: "created",
           },
           {
             $set: {
-              consumedAt: null,
+              razorpayPaymentId: capturedPayment.id,
+
+              status: "paid",
+
+              paidAt,
+
+              failedAt: null,
+
+              cancelledAt: null,
+
+              invoiceNumber,
+
+              failureReason: "",
             },
+          },
+          {
+            new: true,
           },
         );
 
-        throw paymentError;
-      }
-    } catch (error) {
-      console.error("Resume order creation failed:", error);
+        if (!recoveredPayment) {
+          const latestPayment = await ResumePayment.findById(
+            existingPayment._id,
+          );
 
-      return res.status(500).json({
-        error: "ORDER_CREATION_FAILED",
-      });
-    }
-  },
-);
+          if (
+            latestPayment?.status === "paid" &&
+            latestPayment.razorpayPaymentId === capturedPayment.id
+          ) {
+            return res.status(200).json({
+              message: "PAYMENT_ALREADY_VERIFIED",
 
-router.post(
-  "/verify-payment",
-  verifyFirebaseToken,
-  requirePremium,
-  async (req, res) => {
-    try {
-      const user = req.dbUser;
+              status: "paid",
 
-      const { razorpay_order_id, razorpay_payment_id, razorpay_signature } =
-        req.body;
+              paymentRecordId: latestPayment._id,
 
-      if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
-        return res.status(400).json({
-          error: "PAYMENT_DETAILS_REQUIRED",
-        });
-      }
+              resumeId: latestPayment.resume,
 
-      const paymentRecord = await ResumePayment.findOne({
-        user: user._id,
-        razorpayOrderId: razorpay_order_id,
-      });
+              invoiceNumber: latestPayment.invoiceNumber,
 
-      if (!paymentRecord) {
-        return res.status(404).json({
-          error: "PAYMENT_RECORD_NOT_FOUND",
-        });
-      }
+              requiresGeneration: true,
+            });
+          }
 
-      if (paymentRecord.status === "paid") {
-        if (paymentRecord.razorpayPaymentId === razorpay_payment_id) {
-          return res.status(200).json({
-            message: "PAYMENT_ALREADY_VERIFIED",
-
-            paymentRecordId: paymentRecord._id,
-
-            invoiceNumber: paymentRecord.invoiceNumber,
-
-            resumeId: paymentRecord.resume,
+          return res.status(409).json({
+            error: "PAYMENT_ALREADY_PROCESSED",
           });
         }
 
-        return res.status(409).json({
-          error: "PAYMENT_ALREADY_COMPLETED",
-        });
-      }
+        return res.status(200).json({
+          message: "PAYMENT_RECOVERED",
 
-      if (!["created", "failed", "cancelled"].includes(paymentRecord.status)) {
-        return res.status(409).json({
-          error: "PAYMENT_NOT_ACTIVE",
-        });
-      }
+          status: "paid",
 
-      const signatureIsValid = verifyRazorpayPaymentSignature({
-        razorpayOrderId: paymentRecord.razorpayOrderId,
+          paymentRecordId: recoveredPayment._id,
 
-        razorpayPaymentId: razorpay_payment_id,
+          resumeId: recoveredPayment.resume,
 
-        razorpaySignature: razorpay_signature,
-      });
+          invoiceNumber: recoveredPayment.invoiceNumber,
 
-      if (!signatureIsValid) {
-        return res.status(400).json({
-          error: "INVALID_PAYMENT_SIGNATURE",
-        });
-      }
-
-      const razorpayPayment = await fetchRazorpayPayment(razorpay_payment_id);
-
-      if (razorpayPayment.order_id !== paymentRecord.razorpayOrderId) {
-        return res.status(400).json({
-          error: "PAYMENT_ORDER_MISMATCH",
-        });
-      }
-
-      if (Number(razorpayPayment.amount) !== RESUME_PRICE_PAISE) {
-        return res.status(400).json({
-          error: "PAYMENT_AMOUNT_MISMATCH",
-        });
-      }
-
-      if (razorpayPayment.currency !== "INR") {
-        return res.status(400).json({
-          error: "PAYMENT_CURRENCY_MISMATCH",
-        });
-      }
-
-      if (
-        razorpayPayment.status !== "captured" ||
-        razorpayPayment.captured !== true
-      ) {
-        return res.status(409).json({
-          error: "PAYMENT_NOT_CAPTURED",
-          paymentStatus: razorpayPayment.status,
-        });
-      }
-
-      const duplicatePayment = await ResumePayment.findOne({
-        _id: {
-          $ne: paymentRecord._id,
-        },
-
-        razorpayPaymentId: razorpay_payment_id,
-
-        status: "paid",
-      });
-
-      if (duplicatePayment) {
-        return res.status(409).json({
-          error: "DUPLICATE_PAYMENT",
-        });
-      }
-
-      const paidAt = new Date();
-
-      const invoiceNumber = `INV-${paidAt.getTime()}-${razorpay_payment_id
-        .slice(-6)
-        .toUpperCase()}`;
-
-      const updatedPayment = await ResumePayment.findOneAndUpdate(
-        {
-          _id: paymentRecord._id,
-
-          status: {
-            $in: ["created", "failed", "cancelled"],
-          },
-        },
-        {
-          $set: {
-            razorpayPaymentId: razorpay_payment_id,
-
-            razorpaySignature: razorpay_signature,
-
-            status: "paid",
-
-            paidAt,
-
-            failedAt: null,
-            cancelledAt: null,
-
-            invoiceNumber,
-
-            failureReason: "",
-          },
-        },
-        {
-          new: true,
-        },
-      );
-
-      if (!updatedPayment) {
-        const latestPayment = await ResumePayment.findById(paymentRecord._id);
-
-        if (
-          latestPayment?.status === "paid" &&
-          latestPayment.razorpayPaymentId === razorpay_payment_id
-        ) {
-          return res.status(200).json({
-            message: "PAYMENT_ALREADY_VERIFIED",
-
-            paymentRecordId: latestPayment._id,
-
-            invoiceNumber: latestPayment.invoiceNumber,
-
-            resumeId: latestPayment.resume,
-          });
-        }
-
-        return res.status(409).json({
-          error: "PAYMENT_ALREADY_PROCESSED",
+          requiresGeneration: true,
         });
       }
 
       return res.status(200).json({
-        message: "PAYMENT_VERIFIED",
+        message: "ORDER_ALREADY_EXISTS",
 
-        paymentRecordId: updatedPayment._id,
+        order: {
+          id: existingPayment.razorpayOrderId,
 
-        resumeId: updatedPayment.resume,
+          amount: existingPayment.amount,
 
-        amount: updatedPayment.amount,
+          currency: existingPayment.currency,
+        },
 
-        currency: updatedPayment.currency,
+        paymentRecordId: existingPayment._id,
 
-        invoiceNumber: updatedPayment.invoiceNumber,
+        keyId: process.env.RAZORPAY_KEY_ID,
 
-        paidAt: updatedPayment.paidAt,
+        testMode: true,
 
-        testMode: updatedPayment.testMode,
-      });
-    } catch (error) {
-      console.error("Resume payment verification failed:", error);
-
-      return res.status(500).json({
-        error: "PAYMENT_VERIFICATION_FAILED",
-      });
-    }
-  },
-);
-
-router.post(
-  "/generate",
-  verifyFirebaseToken,
-  requirePremium,
-  async (req, res) => {
-    const user = req.dbUser;
-
-    const { resumeId, paymentRecordId } = req.body;
-
-    if (!resumeId) {
-      return res.status(400).json({
-        error: "RESUME_ID_REQUIRED",
+        reused: true,
       });
     }
 
-    if (!paymentRecordId) {
-      return res.status(400).json({
-        error: "PAYMENT_RECORD_ID_REQUIRED",
+    const otpRecord = await ResumeOtp.findOne({
+      user: user._id,
+    });
+
+    if (!otpRecord) {
+      return res.status(403).json({
+        error: "OTP_VERIFICATION_REQUIRED",
       });
     }
 
-    let claimedPayment = null;
-    let storedFileId = null;
+    if (
+      !otpRecord.resume ||
+      otpRecord.resume.toString() !== resume._id.toString()
+    ) {
+      return res.status(403).json({
+        error: "OTP_RESUME_MISMATCH",
+      });
+    }
+
+    if (!otpRecord.verifiedAt) {
+      return res.status(403).json({
+        error: "OTP_VERIFICATION_REQUIRED",
+      });
+    }
+
+    if (
+      !otpRecord.verifiedUntil ||
+      otpRecord.verifiedUntil.getTime() < Date.now()
+    ) {
+      return res.status(403).json({
+        error: "OTP_VERIFICATION_EXPIRED",
+      });
+    }
+
+    if (otpRecord.consumedAt) {
+      return res.status(409).json({
+        error: "OTP_ALREADY_USED",
+      });
+    }
+
+    const consumedAt = new Date();
+
+    const reservedOtp = await ResumeOtp.findOneAndUpdate(
+      {
+        _id: otpRecord._id,
+
+        resume: resume._id,
+
+        consumedAt: null,
+
+        verifiedAt: {
+          $ne: null,
+        },
+
+        verifiedUntil: {
+          $gt: consumedAt,
+        },
+      },
+      {
+        $set: {
+          consumedAt,
+        },
+      },
+      {
+        new: true,
+      },
+    );
+
+    if (!reservedOtp) {
+      return res.status(409).json({
+        error: "OTP_ALREADY_USED_OR_EXPIRED",
+      });
+    }
 
     try {
-      const resume = await Resume.findOne({
-        _id: resumeId,
-        user: user._id,
+      const receipt = `resume_${user._id.toString().slice(-8)}_${Date.now()}`;
+
+      const razorpayOrder = await createResumePaymentOrder({
+        amount: RESUME_PRICE_PAISE,
+
+        receipt,
       });
 
-      if (!resume) {
-        return res.status(404).json({
-          error: "RESUME_NOT_FOUND",
-        });
-      }
-
-      const validation = validateResume(resume);
-
-      if (!validation.isValid) {
-        return res.status(400).json({
-          error: "INCOMPLETE_RESUME",
-          details: validation.errors,
-        });
-      }
-
-      const payment = await ResumePayment.findOne({
-        _id: paymentRecordId,
+      const payment = await ResumePayment.create({
         user: user._id,
+
         resume: resume._id,
+
+        amount: RESUME_PRICE_PAISE,
+
+        currency: "INR",
+
+        razorpayOrderId: razorpayOrder.id,
+
+        status: "created",
+
+        otpVerified: true,
+
+        otpVerifiedAt: reservedOtp.verifiedAt,
+
+        testMode: true,
       });
 
-      if (!payment) {
-        return res.status(404).json({
-          error: "PAYMENT_RECORD_NOT_FOUND",
+      return res.status(201).json({
+        message: "ORDER_CREATED",
+
+        order: {
+          id: razorpayOrder.id,
+
+          amount: razorpayOrder.amount,
+
+          currency: razorpayOrder.currency,
+        },
+
+        paymentRecordId: payment._id,
+
+        keyId: process.env.RAZORPAY_KEY_ID,
+
+        testMode: true,
+
+        reused: false,
+      });
+    } catch (paymentError) {
+      await ResumeOtp.updateOne(
+        {
+          _id: reservedOtp._id,
+          consumedAt,
+        },
+        {
+          $set: {
+            consumedAt: null,
+          },
+        },
+      );
+
+      throw paymentError;
+    }
+  } catch (error) {
+    console.error("Resume order creation failed:", error);
+
+    return res.status(500).json({
+      error: "ORDER_CREATION_FAILED",
+    });
+  }
+});
+
+router.post("/verify-payment", requirePremium, async (req, res) => {
+  try {
+    const user = req.dbUser;
+
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } =
+      req.body;
+
+    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+      return res.status(400).json({
+        error: "PAYMENT_DETAILS_REQUIRED",
+      });
+    }
+
+    const paymentRecord = await ResumePayment.findOne({
+      user: user._id,
+      razorpayOrderId: razorpay_order_id,
+    });
+
+    if (!paymentRecord) {
+      return res.status(404).json({
+        error: "PAYMENT_RECORD_NOT_FOUND",
+      });
+    }
+
+    if (paymentRecord.status === "paid") {
+      if (paymentRecord.razorpayPaymentId === razorpay_payment_id) {
+        return res.status(200).json({
+          message: "PAYMENT_ALREADY_VERIFIED",
+
+          paymentRecordId: paymentRecord._id,
+
+          invoiceNumber: paymentRecord.invoiceNumber,
+
+          resumeId: paymentRecord.resume,
         });
       }
 
-      if (payment.status !== "paid") {
-        return res.status(403).json({
-          error: "PAYMENT_REQUIRED",
+      return res.status(409).json({
+        error: "PAYMENT_ALREADY_COMPLETED",
+      });
+    }
+
+    if (!["created", "failed", "cancelled"].includes(paymentRecord.status)) {
+      return res.status(409).json({
+        error: "PAYMENT_NOT_ACTIVE",
+      });
+    }
+
+    const signatureIsValid = verifyRazorpayPaymentSignature({
+      razorpayOrderId: paymentRecord.razorpayOrderId,
+
+      razorpayPaymentId: razorpay_payment_id,
+
+      razorpaySignature: razorpay_signature,
+    });
+
+    if (!signatureIsValid) {
+      return res.status(400).json({
+        error: "INVALID_PAYMENT_SIGNATURE",
+      });
+    }
+
+    const razorpayPayment = await fetchRazorpayPayment(razorpay_payment_id);
+
+    if (razorpayPayment.order_id !== paymentRecord.razorpayOrderId) {
+      return res.status(400).json({
+        error: "PAYMENT_ORDER_MISMATCH",
+      });
+    }
+
+    if (Number(razorpayPayment.amount) !== RESUME_PRICE_PAISE) {
+      return res.status(400).json({
+        error: "PAYMENT_AMOUNT_MISMATCH",
+      });
+    }
+
+    if (razorpayPayment.currency !== "INR") {
+      return res.status(400).json({
+        error: "PAYMENT_CURRENCY_MISMATCH",
+      });
+    }
+
+    if (
+      razorpayPayment.status !== "captured" ||
+      razorpayPayment.captured !== true
+    ) {
+      return res.status(409).json({
+        error: "PAYMENT_NOT_CAPTURED",
+        paymentStatus: razorpayPayment.status,
+      });
+    }
+
+    const duplicatePayment = await ResumePayment.findOne({
+      _id: {
+        $ne: paymentRecord._id,
+      },
+
+      razorpayPaymentId: razorpay_payment_id,
+
+      status: "paid",
+    });
+
+    if (duplicatePayment) {
+      return res.status(409).json({
+        error: "DUPLICATE_PAYMENT",
+      });
+    }
+
+    const paidAt = new Date();
+
+    const invoiceNumber = `INV-${paidAt.getTime()}-${razorpay_payment_id
+      .slice(-6)
+      .toUpperCase()}`;
+
+    const updatedPayment = await ResumePayment.findOneAndUpdate(
+      {
+        _id: paymentRecord._id,
+
+        status: {
+          $in: ["created", "failed", "cancelled"],
+        },
+      },
+      {
+        $set: {
+          razorpayPaymentId: razorpay_payment_id,
+
+          razorpaySignature: razorpay_signature,
+
+          status: "paid",
+
+          paidAt,
+
+          failedAt: null,
+          cancelledAt: null,
+
+          invoiceNumber,
+
+          failureReason: "",
+        },
+      },
+      {
+        new: true,
+      },
+    );
+
+    if (!updatedPayment) {
+      const latestPayment = await ResumePayment.findById(paymentRecord._id);
+
+      if (
+        latestPayment?.status === "paid" &&
+        latestPayment.razorpayPaymentId === razorpay_payment_id
+      ) {
+        return res.status(200).json({
+          message: "PAYMENT_ALREADY_VERIFIED",
+
+          paymentRecordId: latestPayment._id,
+
+          invoiceNumber: latestPayment.invoiceNumber,
+
+          resumeId: latestPayment.resume,
         });
       }
 
-      if (payment.amount !== RESUME_PRICE_PAISE || payment.currency !== "INR") {
-        return res.status(400).json({
-          error: "INVALID_PAYMENT_RECORD",
+      return res.status(409).json({
+        error: "PAYMENT_ALREADY_PROCESSED",
+      });
+    }
+
+    return res.status(200).json({
+      message: "PAYMENT_VERIFIED",
+
+      paymentRecordId: updatedPayment._id,
+
+      resumeId: updatedPayment.resume,
+
+      amount: updatedPayment.amount,
+
+      currency: updatedPayment.currency,
+
+      invoiceNumber: updatedPayment.invoiceNumber,
+
+      paidAt: updatedPayment.paidAt,
+
+      testMode: updatedPayment.testMode,
+    });
+  } catch (error) {
+    console.error("Resume payment verification failed:", error);
+
+    return res.status(500).json({
+      error: "PAYMENT_VERIFICATION_FAILED",
+    });
+  }
+});
+
+router.post("/generate", requirePremium, async (req, res) => {
+  const user = req.dbUser;
+
+  const { resumeId, paymentRecordId } = req.body;
+
+  if (!resumeId) {
+    return res.status(400).json({
+      error: "RESUME_ID_REQUIRED",
+    });
+  }
+
+  if (!paymentRecordId) {
+    return res.status(400).json({
+      error: "PAYMENT_RECORD_ID_REQUIRED",
+    });
+  }
+
+  let claimedPayment = null;
+  let storedFileId = null;
+
+  try {
+    const resume = await Resume.findOne({
+      _id: resumeId,
+      user: user._id,
+    });
+
+    if (!resume) {
+      return res.status(404).json({
+        error: "RESUME_NOT_FOUND",
+      });
+    }
+
+    const validation = validateResume(resume);
+
+    if (!validation.isValid) {
+      return res.status(400).json({
+        error: "INCOMPLETE_RESUME",
+        details: validation.errors,
+      });
+    }
+
+    const payment = await ResumePayment.findOne({
+      _id: paymentRecordId,
+      user: user._id,
+      resume: resume._id,
+    });
+
+    if (!payment) {
+      return res.status(404).json({
+        error: "PAYMENT_RECORD_NOT_FOUND",
+      });
+    }
+
+    if (payment.status !== "paid") {
+      return res.status(403).json({
+        error: "PAYMENT_REQUIRED",
+      });
+    }
+
+    if (payment.amount !== RESUME_PRICE_PAISE || payment.currency !== "INR") {
+      return res.status(400).json({
+        error: "INVALID_PAYMENT_RECORD",
+      });
+    }
+
+    if (payment.testMode !== true) {
+      return res.status(400).json({
+        error: "RAZORPAY_TEST_MODE_REQUIRED",
+      });
+    }
+
+    if (!payment.razorpayPaymentId) {
+      return res.status(400).json({
+        error: "PAYMENT_NOT_VERIFIED",
+      });
+    }
+
+    if (payment.generationStatus === "generated") {
+      const existingVersion = resume.versions.find(
+        (version) => version.versionNumber === payment.versionNumber,
+      );
+
+      return res.status(200).json({
+        message: "RESUME_ALREADY_GENERATED",
+
+        resumeId: resume._id,
+
+        versionNumber: payment.versionNumber,
+
+        pdfUrl: existingVersion?.pdfUrl || "",
+
+        invoiceNumber: payment.invoiceNumber,
+      });
+    }
+
+    const generationClaimedAt = new Date();
+
+    const staleGenerationBefore = new Date(
+      generationClaimedAt.getTime() - GENERATION_STALE_MS,
+    );
+
+    if (payment.generationStatus === "generating") {
+      const activeGenerationStartedAt =
+        payment.generationStartedAt || payment.updatedAt;
+
+      if (
+        activeGenerationStartedAt &&
+        activeGenerationStartedAt > staleGenerationBefore
+      ) {
+        return res.status(409).json({
+          error: "RESUME_GENERATION_IN_PROGRESS",
         });
       }
+    }
 
-      if (payment.testMode !== true) {
-        return res.status(400).json({
-          error: "RAZORPAY_TEST_MODE_REQUIRED",
-        });
-      }
+    claimedPayment = await ResumePayment.findOneAndUpdate(
+      {
+        _id: payment._id,
 
-      if (!payment.razorpayPaymentId) {
-        return res.status(400).json({
-          error: "PAYMENT_NOT_VERIFIED",
-        });
-      }
+        user: user._id,
 
-      if (payment.generationStatus === "generated") {
+        resume: resume._id,
+
+        status: "paid",
+
+        versionNumber: null,
+
+        $or: [
+          {
+            generationStatus: {
+              $in: ["pending", "failed"],
+            },
+          },
+          {
+            generationStatus: "generating",
+
+            generationStartedAt: {
+              $lte: staleGenerationBefore,
+            },
+          },
+          {
+            generationStatus: "generating",
+
+            generationStartedAt: null,
+
+            updatedAt: {
+              $lte: staleGenerationBefore,
+            },
+          },
+        ],
+      },
+      {
+        $set: {
+          generationStatus: "generating",
+
+          generationStartedAt: generationClaimedAt,
+        },
+      },
+      {
+        new: true,
+      },
+    );
+
+    if (!claimedPayment) {
+      const latestPayment = await ResumePayment.findById(payment._id);
+
+      if (latestPayment?.generationStatus === "generated") {
         const existingVersion = resume.versions.find(
-          (version) => version.versionNumber === payment.versionNumber,
+          (version) => version.versionNumber === latestPayment.versionNumber,
         );
 
         return res.status(200).json({
@@ -1116,348 +1174,257 @@ router.post(
 
           resumeId: resume._id,
 
-          versionNumber: payment.versionNumber,
+          versionNumber: latestPayment.versionNumber,
 
           pdfUrl: existingVersion?.pdfUrl || "",
 
-          invoiceNumber: payment.invoiceNumber,
+          invoiceNumber: latestPayment.invoiceNumber,
         });
       }
 
-      const generationClaimedAt = new Date();
-
-      const staleGenerationBefore = new Date(
-        generationClaimedAt.getTime() - GENERATION_STALE_MS,
-      );
-
-      if (payment.generationStatus === "generating") {
-        const activeGenerationStartedAt =
-          payment.generationStartedAt || payment.updatedAt;
-
-        if (
-          activeGenerationStartedAt &&
-          activeGenerationStartedAt > staleGenerationBefore
-        ) {
-          return res.status(409).json({
-            error: "RESUME_GENERATION_IN_PROGRESS",
-          });
-        }
-      }
-
-      claimedPayment = await ResumePayment.findOneAndUpdate(
-        {
-          _id: payment._id,
-
-          user: user._id,
-
-          resume: resume._id,
-
-          status: "paid",
-
-          versionNumber: null,
-
-          $or: [
-            {
-              generationStatus: {
-                $in: ["pending", "failed"],
-              },
-            },
-            {
-              generationStatus: "generating",
-
-              generationStartedAt: {
-                $lte: staleGenerationBefore,
-              },
-            },
-            {
-              generationStatus: "generating",
-
-              generationStartedAt: null,
-
-              updatedAt: {
-                $lte: staleGenerationBefore,
-              },
-            },
-          ],
-        },
-        {
-          $set: {
-            generationStatus: "generating",
-
-            generationStartedAt: generationClaimedAt,
-          },
-        },
-        {
-          new: true,
-        },
-      );
-
-      if (!claimedPayment) {
-        const latestPayment = await ResumePayment.findById(payment._id);
-
-        if (latestPayment?.generationStatus === "generated") {
-          const existingVersion = resume.versions.find(
-            (version) => version.versionNumber === latestPayment.versionNumber,
-          );
-
-          return res.status(200).json({
-            message: "RESUME_ALREADY_GENERATED",
-
-            resumeId: resume._id,
-
-            versionNumber: latestPayment.versionNumber,
-
-            pdfUrl: existingVersion?.pdfUrl || "",
-
-            invoiceNumber: latestPayment.invoiceNumber,
-          });
-        }
-
-        if (latestPayment?.generationStatus === "generating") {
-          return res.status(409).json({
-            error: "RESUME_GENERATION_IN_PROGRESS",
-          });
-        }
-
+      if (latestPayment?.generationStatus === "generating") {
         return res.status(409).json({
-          error: "RESUME_GENERATION_ALREADY_CLAIMED",
+          error: "RESUME_GENERATION_IN_PROGRESS",
         });
       }
 
-      const contentSnapshot = resume.content?.toObject
-        ? resume.content.toObject()
-        : resume.content;
-
-      const customizationSnapshot = resume.customization?.toObject
-        ? resume.customization.toObject()
-        : resume.customization;
-
-      const pdfBuffer = await generateResumePdf({
-        content: contentSnapshot,
-        customization: customizationSnapshot,
+      return res.status(409).json({
+        error: "RESUME_GENERATION_ALREADY_CLAIMED",
       });
+    }
 
-      if (!Buffer.isBuffer(pdfBuffer) || pdfBuffer.length === 0) {
-        throw new Error("PDF_GENERATION_RETURNED_EMPTY_BUFFER");
-      }
+    const contentSnapshot = resume.content?.toObject
+      ? resume.content.toObject()
+      : resume.content;
 
-      const nextVersion = resume.currentVersion + 1;
+    const customizationSnapshot = resume.customization?.toObject
+      ? resume.customization.toObject()
+      : resume.customization;
 
-      const filename = `resume_${resume._id}_v${nextVersion}.pdf`;
+    const pdfBuffer = await generateResumePdf({
+      content: contentSnapshot,
+      customization: customizationSnapshot,
+    });
 
-      const storedPdf = await storeResumePdf({
-        buffer: pdfBuffer,
+    if (!Buffer.isBuffer(pdfBuffer) || pdfBuffer.length === 0) {
+      throw new Error("PDF_GENERATION_RETURNED_EMPTY_BUFFER");
+    }
 
-        filename,
+    const nextVersion = resume.currentVersion + 1;
 
-        metadata: {
-          userId: user._id.toString(),
+    const filename = `resume_${resume._id}_v${nextVersion}.pdf`;
 
-          resumeId: resume._id.toString(),
+    const storedPdf = await storeResumePdf({
+      buffer: pdfBuffer,
 
-          paymentId: claimedPayment._id.toString(),
+      filename,
 
-          versionNumber: nextVersion,
-        },
-      });
+      metadata: {
+        userId: user._id.toString(),
 
-      storedFileId = storedPdf.fileId;
+        resumeId: resume._id.toString(),
 
-      const pdfUrl = `/api/resume/${resume._id}/version/${nextVersion}/download`;
+        paymentId: claimedPayment._id.toString(),
 
-      const session = await mongoose.startSession();
+        versionNumber: nextVersion,
+      },
+    });
 
-      let updatedResume;
+    storedFileId = storedPdf.fileId;
 
-      try {
-        await session.withTransaction(async () => {
-          await Resume.updateMany(
-            {
-              user: user._id,
+    const pdfUrl = `/api/resume/${resume._id}/version/${nextVersion}/download`;
 
-              _id: {
-                $ne: resume._id,
-              },
+    const session = await mongoose.startSession();
+
+    let updatedResume;
+
+    try {
+      await session.withTransaction(async () => {
+        await Resume.updateMany(
+          {
+            user: user._id,
+
+            _id: {
+              $ne: resume._id,
+            },
+
+            isDefault: true,
+          },
+          {
+            $set: {
+              isDefault: false,
+            },
+          },
+          {
+            session,
+          },
+        );
+
+        updatedResume = await Resume.findOneAndUpdate(
+          {
+            _id: resume._id,
+
+            user: user._id,
+
+            currentVersion: resume.currentVersion,
+          },
+          {
+            $set: {
+              currentVersion: nextVersion,
+
+              status: "generated",
 
               isDefault: true,
             },
-            {
-              $set: {
-                isDefault: false,
-              },
-            },
-            {
-              session,
-            },
-          );
 
-          updatedResume = await Resume.findOneAndUpdate(
-            {
-              _id: resume._id,
-
-              user: user._id,
-
-              currentVersion: resume.currentVersion,
-            },
-            {
-              $set: {
-                currentVersion: nextVersion,
-
-                status: "generated",
-
-                isDefault: true,
-              },
-
-              $push: {
-                versions: {
-                  versionNumber: nextVersion,
-
-                  content: contentSnapshot,
-
-                  customization: customizationSnapshot,
-
-                  pdfUrl,
-
-                  pdfFileId: storedPdf.fileId,
-
-                  payment: claimedPayment._id,
-
-                  generatedAt: new Date(),
-                },
-              },
-            },
-            {
-              new: true,
-              session,
-            },
-          );
-
-          if (!updatedResume) {
-            throw new Error("RESUME_VERSION_CONFLICT");
-          }
-
-          const userResult = await User.findOneAndUpdate(
-            {
-              _id: user._id,
-            },
-            {
-              $addToSet: {
-                resumes: resume._id,
-              },
-
-              $set: {
-                defaultResume: resume._id,
-              },
-            },
-            {
-              new: true,
-              session,
-            },
-          );
-
-          if (!userResult) {
-            throw new Error("USER_DEFAULT_RESUME_UPDATE_FAILED");
-          }
-
-          const paymentResult = await ResumePayment.findOneAndUpdate(
-            {
-              _id: claimedPayment._id,
-
-              generationStatus: "generating",
-
-              generationStartedAt: claimedPayment.generationStartedAt,
-
-              versionNumber: null,
-            },
-            {
-              $set: {
-                generationStatus: "generated",
-
-                generationStartedAt: null,
-
+            $push: {
+              versions: {
                 versionNumber: nextVersion,
+
+                content: contentSnapshot,
+
+                customization: customizationSnapshot,
+
+                pdfUrl,
+
+                pdfFileId: storedPdf.fileId,
+
+                payment: claimedPayment._id,
+
+                generatedAt: new Date(),
               },
             },
-            {
-              new: true,
-              session,
+          },
+          {
+            new: true,
+            session,
+          },
+        );
+
+        if (!updatedResume) {
+          throw new Error("RESUME_VERSION_CONFLICT");
+        }
+
+        const userResult = await User.findOneAndUpdate(
+          {
+            _id: user._id,
+          },
+          {
+            $addToSet: {
+              resumes: resume._id,
             },
-          );
 
-          if (!paymentResult) {
-            throw new Error("PAYMENT_GENERATION_UPDATE_FAILED");
-          }
-        });
-      } finally {
-        await session.endSession();
-      }
+            $set: {
+              defaultResume: resume._id,
+            },
+          },
+          {
+            new: true,
+            session,
+          },
+        );
 
-      return res.status(201).json({
-        message: "RESUME_GENERATED",
+        if (!userResult) {
+          throw new Error("USER_DEFAULT_RESUME_UPDATE_FAILED");
+        }
 
-        resumeId: updatedResume._id,
+        const paymentResult = await ResumePayment.findOneAndUpdate(
+          {
+            _id: claimedPayment._id,
 
-        versionNumber: nextVersion,
+            generationStatus: "generating",
 
-        pdfUrl,
+            generationStartedAt: claimedPayment.generationStartedAt,
 
-        invoiceNumber: claimedPayment.invoiceNumber,
+            versionNumber: null,
+          },
+          {
+            $set: {
+              generationStatus: "generated",
 
-        isDefault: true,
+              generationStartedAt: null,
+
+              versionNumber: nextVersion,
+            },
+          },
+          {
+            new: true,
+            session,
+          },
+        );
+
+        if (!paymentResult) {
+          throw new Error("PAYMENT_GENERATION_UPDATE_FAILED");
+        }
       });
-    } catch (error) {
-      console.error("Resume generation failed:", error);
+    } finally {
+      await session.endSession();
+    }
 
-      if (storedFileId) {
-        try {
-          await deleteResumePdf(storedFileId);
-        } catch (cleanupError) {
-          console.error("Generated PDF cleanup failed:", cleanupError);
-        }
+    return res.status(201).json({
+      message: "RESUME_GENERATED",
+
+      resumeId: updatedResume._id,
+
+      versionNumber: nextVersion,
+
+      pdfUrl,
+
+      invoiceNumber: claimedPayment.invoiceNumber,
+
+      isDefault: true,
+    });
+  } catch (error) {
+    console.error("Resume generation failed:", error);
+
+    if (storedFileId) {
+      try {
+        await deleteResumePdf(storedFileId);
+      } catch (cleanupError) {
+        console.error("Generated PDF cleanup failed:", cleanupError);
       }
+    }
 
-      if (claimedPayment) {
-        try {
-          await ResumePayment.updateOne(
-            {
-              _id: claimedPayment._id,
+    if (claimedPayment) {
+      try {
+        await ResumePayment.updateOne(
+          {
+            _id: claimedPayment._id,
 
-              generationStatus: "generating",
+            generationStatus: "generating",
 
-              generationStartedAt: claimedPayment.generationStartedAt,
+            generationStartedAt: claimedPayment.generationStartedAt,
+          },
+          {
+            $set: {
+              generationStatus: "failed",
+
+              generationStartedAt: null,
             },
-            {
-              $set: {
-                generationStatus: "failed",
-
-                generationStartedAt: null,
-              },
-            },
-          );
-        } catch (paymentCleanupError) {
-          console.error(
-            "Payment generation status cleanup failed:",
-            paymentCleanupError,
-          );
-        }
+          },
+        );
+      } catch (paymentCleanupError) {
+        console.error(
+          "Payment generation status cleanup failed:",
+          paymentCleanupError,
+        );
       }
+    }
 
-      if (error.message === "RESUME_VERSION_CONFLICT") {
-        return res.status(409).json({
-          error: "RESUME_VERSION_CONFLICT_RETRY",
-        });
-      }
-
-      return res.status(500).json({
-        error: "RESUME_GENERATION_FAILED",
+    if (error.message === "RESUME_VERSION_CONFLICT") {
+      return res.status(409).json({
+        error: "RESUME_VERSION_CONFLICT_RETRY",
       });
     }
-  },
-);
+
+    return res.status(500).json({
+      error: "RESUME_GENERATION_FAILED",
+    });
+  }
+});
 
 router.get(
   "/:resumeId/version/:versionNumber/download",
-  verifyFirebaseToken,
   requirePremium,
   async (req, res) => {
     try {
@@ -1587,210 +1554,194 @@ router.get(
   },
 );
 
-router.put(
-  "/:resumeId/default",
-  verifyFirebaseToken,
-  requirePremium,
-  async (req, res) => {
-    const user = req.dbUser;
-    let session = null;
+router.put("/:resumeId/default", requirePremium, async (req, res) => {
+  const user = req.dbUser;
+  let session = null;
 
-    try {
-      const resume = await Resume.findOne({
-        _id: req.params.resumeId,
-        user: user._id,
+  try {
+    const resume = await Resume.findOne({
+      _id: req.params.resumeId,
+      user: user._id,
+    });
+
+    if (!resume) {
+      return res.status(404).json({
+        error: "RESUME_NOT_FOUND",
       });
+    }
 
-      if (!resume) {
-        return res.status(404).json({
-          error: "RESUME_NOT_FOUND",
-        });
-      }
-
-      if (resume.status !== "generated" || resume.versions.length === 0) {
-        return res.status(409).json({
-          error: "RESUME_NOT_GENERATED",
-        });
-      }
-
-      if (resume.isDefault) {
-        if (
-          !user.defaultResume ||
-          user.defaultResume.toString() !== resume._id.toString()
-        ) {
-          await User.findByIdAndUpdate(user._id, {
-            $set: {
-              defaultResume: resume._id,
-            },
-            $addToSet: {
-              resumes: resume._id,
-            },
-          });
-        }
-
-        return res.status(200).json({
-          message: "DEFAULT_RESUME_ALREADY_SET",
-          resumeId: resume._id,
-          isDefault: true,
-        });
-      }
-
-      session = await mongoose.startSession();
-
-      await session.withTransaction(async () => {
-        await Resume.updateMany(
-          {
-            user: user._id,
-            isDefault: true,
-            _id: {
-              $ne: resume._id,
-            },
-          },
-          {
-            $set: {
-              isDefault: false,
-            },
-          },
-          {
-            session,
-          },
-        );
-
-        const updatedResume = await Resume.findOneAndUpdate(
-          {
-            _id: resume._id,
-            user: user._id,
-            status: "generated",
-            "versions.0": {
-              $exists: true,
-            },
-          },
-          {
-            $set: {
-              isDefault: true,
-            },
-          },
-          {
-            new: true,
-            session,
-          },
-        );
-
-        if (!updatedResume) {
-          throw new Error("DEFAULT_RESUME_UPDATE_FAILED");
-        }
-
-        const updatedUser = await User.findByIdAndUpdate(
-          user._id,
-          {
-            $set: {
-              defaultResume: resume._id,
-            },
-            $addToSet: {
-              resumes: resume._id,
-            },
-          },
-          {
-            new: true,
-            session,
-          },
-        );
-
-        if (!updatedUser) {
-          throw new Error("USER_DEFAULT_RESUME_UPDATE_FAILED");
-        }
+    if (resume.status !== "generated" || resume.versions.length === 0) {
+      return res.status(409).json({
+        error: "RESUME_NOT_GENERATED",
       });
+    }
+
+    if (resume.isDefault) {
+      if (
+        !user.defaultResume ||
+        user.defaultResume.toString() !== resume._id.toString()
+      ) {
+        await User.findByIdAndUpdate(user._id, {
+          $set: {
+            defaultResume: resume._id,
+          },
+          $addToSet: {
+            resumes: resume._id,
+          },
+        });
+      }
 
       return res.status(200).json({
-        message: "DEFAULT_RESUME_UPDATED",
+        message: "DEFAULT_RESUME_ALREADY_SET",
         resumeId: resume._id,
         isDefault: true,
       });
-    } catch (error) {
-      console.error("Default resume update failed:", error);
-
-      return res.status(500).json({
-        error: "DEFAULT_RESUME_UPDATE_FAILED",
-      });
-    } finally {
-      if (session) {
-        await session.endSession();
-      }
     }
-  },
-);
 
-router.get(
-  "/history",
-  verifyFirebaseToken,
-  requirePremium,
-  async (req, res) => {
-    try {
-      const user = req.dbUser;
+    session = await mongoose.startSession();
 
-      const resumes = await Resume.find({
-        user: user._id,
-        "versions.0": {
-          $exists: true,
+    await session.withTransaction(async () => {
+      await Resume.updateMany(
+        {
+          user: user._id,
+          isDefault: true,
+          _id: {
+            $ne: resume._id,
+          },
         },
-      })
-        .select(
-          "title status isDefault currentVersion versions downloadHistory createdAt updatedAt",
-        )
-        .sort({
-          updatedAt: -1,
-        })
-        .lean();
+        {
+          $set: {
+            isDefault: false,
+          },
+        },
+        {
+          session,
+        },
+      );
 
-      return res.status(200).json({
-        resumes,
-      });
-    } catch (error) {
-      console.error("Resume history fetch failed:", error);
+      const updatedResume = await Resume.findOneAndUpdate(
+        {
+          _id: resume._id,
+          user: user._id,
+          status: "generated",
+          "versions.0": {
+            $exists: true,
+          },
+        },
+        {
+          $set: {
+            isDefault: true,
+          },
+        },
+        {
+          new: true,
+          session,
+        },
+      );
 
-      return res.status(500).json({
-        error: "RESUME_HISTORY_FETCH_FAILED",
-      });
+      if (!updatedResume) {
+        throw new Error("DEFAULT_RESUME_UPDATE_FAILED");
+      }
+
+      const updatedUser = await User.findByIdAndUpdate(
+        user._id,
+        {
+          $set: {
+            defaultResume: resume._id,
+          },
+          $addToSet: {
+            resumes: resume._id,
+          },
+        },
+        {
+          new: true,
+          session,
+        },
+      );
+
+      if (!updatedUser) {
+        throw new Error("USER_DEFAULT_RESUME_UPDATE_FAILED");
+      }
+    });
+
+    return res.status(200).json({
+      message: "DEFAULT_RESUME_UPDATED",
+      resumeId: resume._id,
+      isDefault: true,
+    });
+  } catch (error) {
+    console.error("Default resume update failed:", error);
+
+    return res.status(500).json({
+      error: "DEFAULT_RESUME_UPDATE_FAILED",
+    });
+  } finally {
+    if (session) {
+      await session.endSession();
     }
-  },
-);
+  }
+});
 
-router.get(
-  "/payments",
-  verifyFirebaseToken,
-  requirePremium,
-  async (req, res) => {
-    try {
-      const user = req.dbUser;
+router.get("/history", requirePremium, async (req, res) => {
+  try {
+    const user = req.dbUser;
 
-      const payments = await ResumePayment.find({
-        user: user._id,
+    const resumes = await Resume.find({
+      user: user._id,
+      "versions.0": {
+        $exists: true,
+      },
+    })
+      .select(
+        "title status isDefault currentVersion versions downloadHistory createdAt updatedAt",
+      )
+      .sort({
+        updatedAt: -1,
       })
-        .select(
-          "resume amount currency razorpayOrderId razorpayPaymentId status otpVerified otpVerifiedAt versionNumber generationStatus invoiceNumber paidAt failedAt cancelledAt failureReason testMode createdAt updatedAt",
-        )
-        .populate("resume", "title")
-        .sort({
-          createdAt: -1,
-        })
-        .lean();
+      .lean();
 
-      return res.status(200).json({
-        payments,
-      });
-    } catch (error) {
-      console.error("Resume payment history fetch failed:", error);
+    return res.status(200).json({
+      resumes,
+    });
+  } catch (error) {
+    console.error("Resume history fetch failed:", error);
 
-      return res.status(500).json({
-        error: "PAYMENT_HISTORY_FETCH_FAILED",
-      });
-    }
-  },
-);
+    return res.status(500).json({
+      error: "RESUME_HISTORY_FETCH_FAILED",
+    });
+  }
+});
+
+router.get("/payments", requirePremium, async (req, res) => {
+  try {
+    const user = req.dbUser;
+
+    const payments = await ResumePayment.find({
+      user: user._id,
+    })
+      .select(
+        "resume amount currency razorpayOrderId razorpayPaymentId status otpVerified otpVerifiedAt versionNumber generationStatus invoiceNumber paidAt failedAt cancelledAt failureReason testMode createdAt updatedAt",
+      )
+      .populate("resume", "title")
+      .sort({
+        createdAt: -1,
+      })
+      .lean();
+
+    return res.status(200).json({
+      payments,
+    });
+  } catch (error) {
+    console.error("Resume payment history fetch failed:", error);
+
+    return res.status(500).json({
+      error: "PAYMENT_HISTORY_FETCH_FAILED",
+    });
+  }
+});
 
 router.get(
   "/payments/:paymentRecordId/invoice",
-  verifyFirebaseToken,
   requirePremium,
   async (req, res) => {
     try {
@@ -1860,7 +1811,6 @@ router.get(
 
 router.post(
   "/payments/:paymentRecordId/sync",
-  verifyFirebaseToken,
   requirePremium,
   async (req, res) => {
     try {
@@ -2103,7 +2053,6 @@ router.post(
 
 router.post(
   "/payments/:paymentRecordId/cancel",
-  verifyFirebaseToken,
   requirePremium,
   async (req, res) => {
     try {
@@ -2337,35 +2286,30 @@ router.post(
   },
 );
 
-router.get(
-  "/:resumeId",
-  verifyFirebaseToken,
-  requirePremium,
-  async (req, res) => {
-    try {
-      const user = req.dbUser;
+router.get("/:resumeId", requirePremium, async (req, res) => {
+  try {
+    const user = req.dbUser;
 
-      const resume = await Resume.findOne({
-        _id: req.params.resumeId,
-        user: user._id,
-      });
+    const resume = await Resume.findOne({
+      _id: req.params.resumeId,
+      user: user._id,
+    });
 
-      if (!resume) {
-        return res.status(404).json({
-          error: "RESUME_NOT_FOUND",
-        });
-      }
-
-      return res.status(200).json({
-        resume,
-      });
-    } catch (error) {
-      console.error("Resume fetch failed:", error);
-
-      return res.status(500).json({
-        error: "RESUME_FETCH_FAILED",
+    if (!resume) {
+      return res.status(404).json({
+        error: "RESUME_NOT_FOUND",
       });
     }
-  },
-);
+
+    return res.status(200).json({
+      resume,
+    });
+  } catch (error) {
+    console.error("Resume fetch failed:", error);
+
+    return res.status(500).json({
+      error: "RESUME_FETCH_FAILED",
+    });
+  }
+});
 module.exports = router;

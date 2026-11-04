@@ -6,8 +6,10 @@ const Application = require("../Model/Application");
 const User = require("../Model/User");
 const Resume = require("../Model/Resume");
 const verifyFirebaseToken = require("../middleware/verifyFirebaseToken");
+const verifyLoginSession = require("../middleware/verifyLoginSession");
+const verifyAdminSession = require("../middleware/verifyAdminSession");
 
-router.post("/", verifyFirebaseToken, async (req, res) => {
+router.post("/", verifyFirebaseToken, verifyLoginSession, async (req, res) => {
   try {
     const user = await User.findOne({
       firebaseUid: req.firebaseUser.uid,
@@ -90,6 +92,28 @@ router.post("/", verifyFirebaseToken, async (req, res) => {
     });
   }
 });
+
+router.get("/me", verifyFirebaseToken, verifyLoginSession, async (req, res) => {
+  try {
+    const applications = await Application.find({
+      "user.uid": req.firebaseUser.uid,
+    }).sort({
+      createdAt: -1,
+    });
+
+    return res.status(200).json({
+      applications,
+    });
+  } catch (error) {
+    console.error("User application fetch failed:", error);
+
+    return res.status(500).json({
+      error: "USER_APPLICATIONS_FETCH_FAILED",
+    });
+  }
+});
+
+router.use(verifyAdminSession);
 
 router.get("/", async (req, res) => {
   try {

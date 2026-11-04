@@ -5,6 +5,7 @@ const User = require("../Model/User");
 const MediaAsset = require("../Model/MediaAsset");
 
 const verifyFirebaseToken = require("../middleware/verifyFirebaseToken");
+const verifyLoginSession = require("../middleware/verifyLoginSession");
 const { mediaUploadLimiter } = require("../middleware/socialRateLimits");
 const uploadPostMedia = require("../middleware/uploadPostMedia");
 
@@ -18,7 +19,7 @@ const cloudinary = require("../config/cloudinary");
 
 const router = express.Router();
 
-router.use(verifyFirebaseToken);
+router.use(verifyFirebaseToken, verifyLoginSession);
 
 const getCurrentUser = async (req) => {
   return User.findOne({

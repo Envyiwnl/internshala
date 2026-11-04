@@ -1,4 +1,7 @@
-import axios from "axios";
+import {
+  adminAuthenticatedFetch,
+  AdminAuthenticatedFetchError,
+} from "@/utils/adminAuthenticatedFetch";
 import { Building2, Calendar, FileText, Loader2, User } from "lucide-react";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
@@ -17,16 +20,29 @@ const index = () => {
     const fetchdata = async () => {
       try {
         setloading(true);
-
-        const res = await axios.get(
+        const response = await adminAuthenticatedFetch(
           `https://internshala-78tb.onrender.com/api/application/${id}`,
         );
 
-        console.log(res.data);
+        const result = await response.json().catch(() => ({}));
 
-        setdata(res.data);
+        if (response.status === 401) {
+          await router.replace("/adminlogin");
+          return;
+        }
+
+        if (!response.ok) {
+          throw new Error(result.error || "APPLICATION_FETCH_FAILED");
+        }
+
+        setdata(result);
       } catch (error) {
-        console.log(error);
+        if (error instanceof AdminAuthenticatedFetchError) {
+          await router.replace("/adminlogin");
+          return;
+        }
+
+        console.error("Application detail fetch failed:", error);
       } finally {
         setloading(false);
       }
@@ -35,7 +51,7 @@ const index = () => {
     if (id) {
       fetchdata();
     }
-  }, [id]);
+  }, [id, router]);
 
   const translateStatus = (status: string) => {
     const normalizedStatus = status?.toLowerCase();

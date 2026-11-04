@@ -1,14 +1,19 @@
-import { FormEvent, useEffect, useState } from "react";
+import { SubmitEvent, useEffect, useState } from "react";
 
 import { useTranslation } from "react-i18next";
 import { auth } from "@/firebase/firebase";
 import { toast } from "react-toastify";
+
+import { authenticatedFetch } from "@/utils/authenticatedFetch";
+import { getLoginSessionToken } from "@/utils/loginSession";
 
 interface FrenchOtpModalProps {
   isOpen: boolean;
   onClose: () => void;
   onVerified: (language: "fr") => Promise<void>;
 }
+
+const API_URL = "https://internshala-78tb.onrender.com";
 
 export default function FrenchOtpModal({
   isOpen,
@@ -34,7 +39,6 @@ export default function FrenchOtpModal({
     }
   }, [isOpen]);
 
-  // Countdown timer.
   useEffect(() => {
     if (resendTimer <= 0) {
       return;
@@ -53,33 +57,40 @@ export default function FrenchOtpModal({
     return null;
   }
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+  const hasAuthenticatedSession = () => {
+    const currentUser = auth.currentUser;
+
+    const loginSessionToken = getLoginSessionToken();
+
+    return Boolean(currentUser && loginSessionToken);
+  };
+
+  const handleSubmit = async (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     if (!/^\d{6}$/.test(otp)) {
       toast.error(t("language.invalidOtpFormat"));
+
+      return;
+    }
+
+    if (!hasAuthenticatedSession()) {
+      toast.error(t("language.loginRequired"));
+
+      onClose();
+
       return;
     }
 
     try {
       setIsVerifying(true);
 
-      const currentUser = auth.currentUser;
-
-      if (!currentUser) {
-        toast.error(t("language.loginRequired"));
-        return;
-      }
-
-      const idToken = await currentUser.getIdToken();
-
-      const response = await fetch(
-        "https://internshala-78tb.onrender.com/api/language/french/verify-otp",
+      const response = await authenticatedFetch(
+        `${API_URL}/api/language/french/verify-otp`,
         {
           method: "POST",
 
           headers: {
-            Authorization: `Bearer ${idToken}`,
             "Content-Type": "application/json",
           },
 
@@ -89,7 +100,7 @@ export default function FrenchOtpModal({
         },
       );
 
-      const data = await response.json();
+      const data = await response.json().catch(() => ({}));
 
       if (!response.ok) {
         if (data.error === "INVALID_OTP") {
@@ -98,21 +109,25 @@ export default function FrenchOtpModal({
               attemptsLeft: data.attemptsLeft,
             }),
           );
+
           return;
         }
 
         if (data.error === "OTP_EXPIRED") {
           toast.error(t("language.otpExpired"));
+
           return;
         }
 
         if (data.error === "OTP_TOO_MANY_ATTEMPTS") {
           toast.error(t("language.tooManyOtpAttempts"));
+
           return;
         }
 
         if (data.error === "OTP_NOT_FOUND") {
           toast.error(t("language.otpNotFound"));
+
           return;
         }
 
@@ -122,6 +137,7 @@ export default function FrenchOtpModal({
       await onVerified(data.preferredLanguage);
 
       setOtp("");
+
       onClose();
 
       toast.success(t("language.frenchEnabled"));
@@ -139,31 +155,29 @@ export default function FrenchOtpModal({
       return;
     }
 
+    if (!hasAuthenticatedSession()) {
+      toast.error(t("language.loginRequired"));
+
+      onClose();
+
+      return;
+    }
+
     try {
       setIsResending(true);
 
-      const currentUser = auth.currentUser;
-
-      if (!currentUser) {
-        toast.error(t("language.loginRequired"));
-        return;
-      }
-
-      const idToken = await currentUser.getIdToken();
-
-      const response = await fetch(
-        "https://internshala-78tb.onrender.com/api/language/french/request-otp",
+      const response = await authenticatedFetch(
+        `${API_URL}/api/language/french/request-otp`,
         {
           method: "POST",
 
           headers: {
-            Authorization: `Bearer ${idToken}`,
             "Content-Type": "application/json",
           },
         },
       );
 
-      const data = await response.json();
+      const data = await response.json().catch(() => ({}));
 
       if (!response.ok) {
         if (data.error === "OTP_RESEND_TOO_SOON") {
@@ -180,6 +194,7 @@ export default function FrenchOtpModal({
 
         if (data.error === "OTP_REQUEST_LIMIT_REACHED") {
           toast.error(t("language.otpRequestLimit"));
+
           return;
         }
 
@@ -187,6 +202,7 @@ export default function FrenchOtpModal({
       }
 
       setOtp("");
+
       setResendTimer(60);
 
       toast.success(t("language.otpSent"));
@@ -241,6 +257,7 @@ export default function FrenchOtpModal({
               type="button"
               onClick={() => {
                 setOtp("");
+
                 onClose();
               }}
               disabled={isVerifying}

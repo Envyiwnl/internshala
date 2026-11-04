@@ -21,12 +21,15 @@ const hashOtp = (userId, otp) => {
 
 const User = require("../Model/User");
 const verifyFirebaseToken = require("../middleware/verifyFirebaseToken");
+const verifyLoginSession = require("../middleware/verifyLoginSession");
 
 const router = express.Router();
 
+router.use(verifyFirebaseToken, verifyLoginSession);
+
 const supportedLanguages = ["en", "es", "hi", "pt", "zh", "fr"];
 
-router.put("/", verifyFirebaseToken, async (req, res) => {
+router.put("/", async (req, res) => {
   try {
     const { language } = req.body;
 
@@ -88,7 +91,7 @@ router.put("/", verifyFirebaseToken, async (req, res) => {
   }
 });
 
-router.post("/french/request-otp", verifyFirebaseToken, async (req, res) => {
+router.post("/french/request-otp", async (req, res) => {
   try {
     const user = await User.findOne({
       firebaseUid: req.firebaseUser.uid,
@@ -201,7 +204,7 @@ router.post("/french/request-otp", verifyFirebaseToken, async (req, res) => {
   }
 });
 
-router.post("/french/verify-otp", verifyFirebaseToken, async (req, res) => {
+router.post("/french/verify-otp", async (req, res) => {
   try {
     const { otp } = req.body;
 
@@ -317,7 +320,7 @@ router.post("/french/verify-otp", verifyFirebaseToken, async (req, res) => {
   }
 });
 
-router.get("/history", verifyFirebaseToken, async (req, res) => {
+router.get("/history", async (req, res) => {
   try {
     const user = await User.findOne({
       firebaseUid: req.firebaseUser.uid,

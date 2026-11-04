@@ -7,13 +7,14 @@ const Follow = require("../Model/Follow");
 const Notification = require("../Model/Notification");
 
 const verifyFirebaseToken = require("../middleware/verifyFirebaseToken");
+const verifyLoginSession = require("../middleware/verifyLoginSession");
 const { relationshipActionLimiter } = require("../middleware/socialRateLimits");
 
 const { ensureUserUsername } = require("../utils/username");
 
 const router = express.Router();
 
-router.use(verifyFirebaseToken);
+router.use(verifyFirebaseToken, verifyLoginSession);
 
 const escapeRegex = (value) => {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");

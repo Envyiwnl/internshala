@@ -1,6 +1,6 @@
 import { SubmitEvent, useEffect, useState } from "react";
 import { Check, Pencil, Trash2, UserRound, X } from "lucide-react";
-import { auth } from "@/firebase/firebase";
+import { authenticatedFetch } from "@/utils/authenticatedFetch";
 import { toast } from "react-toastify";
 import { useTranslation } from "react-i18next";
 
@@ -44,30 +44,14 @@ export default function PostComments({
   const [busyCommentId, setBusyCommentId] = useState("");
   const [error, setError] = useState("");
 
-  const getToken = async () => {
-    await auth.authStateReady();
-
-    const firebaseUser = auth.currentUser;
-
-    if (!firebaseUser) {
-      throw new Error("LOGIN_REQUIRED");
-    }
-
-    return firebaseUser.getIdToken();
-  };
-
   const loadComments = async () => {
     try {
       setLoading(true);
       setError("");
 
-      const idToken = await getToken();
-
-      const response = await fetch(`${API_URL}/api/posts/${postId}/comments`, {
-        headers: {
-          Authorization: `Bearer ${idToken}`,
-        },
-      });
+      const response = await authenticatedFetch(
+        `${API_URL}/api/posts/${postId}/comments`,
+      );
 
       const data = await response.json();
 
@@ -99,16 +83,20 @@ export default function PostComments({
     try {
       setSubmitting(true);
 
-      const idToken = await getToken();
+      const response = await authenticatedFetch(
+        `${API_URL}/api/posts/${postId}/comments`,
+        {
+          method: "POST",
 
-      const response = await fetch(`${API_URL}/api/posts/${postId}/comments`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${idToken}`,
-          "Content-Type": "application/json",
+          headers: {
+            "Content-Type": "application/json",
+          },
+
+          body: JSON.stringify({
+            text,
+          }),
         },
-        body: JSON.stringify({ text }),
-      });
+      );
 
       const data = await response.json();
 
@@ -157,17 +145,18 @@ export default function PostComments({
     try {
       setBusyCommentId(commentId);
 
-      const idToken = await getToken();
-
-      const response = await fetch(
+      const response = await authenticatedFetch(
         `${API_URL}/api/posts/${postId}/comments/${commentId}`,
         {
           method: "PUT",
+
           headers: {
-            Authorization: `Bearer ${idToken}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ text }),
+
+          body: JSON.stringify({
+            text,
+          }),
         },
       );
 
@@ -205,15 +194,10 @@ export default function PostComments({
     try {
       setBusyCommentId(commentId);
 
-      const idToken = await getToken();
-
-      const response = await fetch(
+      const response = await authenticatedFetch(
         `${API_URL}/api/posts/${postId}/comments/${commentId}`,
         {
           method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${idToken}`,
-          },
         },
       );
 

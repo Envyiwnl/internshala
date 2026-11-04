@@ -15,6 +15,7 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { ReactNode, useEffect, useRef, useState } from "react";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
+import { authenticatedFetch } from "@/utils/authenticatedFetch";
 import { useSelector } from "react-redux";
 import { useTranslation } from "react-i18next";
 import { selectuser } from "@/feature/userSlice";
@@ -167,23 +168,13 @@ const index = () => {
   const paymentHandledRef = useRef(false);
 
   const apiRequest = async (path: string, options: RequestInit = {}) => {
-    const firebaseUser = getAuth().currentUser;
-
-    if (!firebaseUser) {
-      throw new Error("AUTHENTICATION_REQUIRED");
-    }
-
-    const token = await firebaseUser.getIdToken();
-
     const headers = new Headers(options.headers);
-
-    headers.set("Authorization", `Bearer ${token}`);
 
     if (options.body && !headers.has("Content-Type")) {
       headers.set("Content-Type", "application/json");
     }
 
-    const response = await fetch(`${API_URL}${path}`, {
+    const response = await authenticatedFetch(`${API_URL}${path}`, {
       ...options,
       headers,
     });
@@ -215,14 +206,12 @@ const index = () => {
         setLoading(true);
         setFlowError("");
 
-        const token = await firebaseUser.getIdToken();
-
-        const response = await fetch(`${API_URL}/api/resume/${resumeId}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
+        const response = await authenticatedFetch(
+          `${API_URL}/api/resume/${resumeId}`,
+          {
+            signal: controller.signal,
           },
-          signal: controller.signal,
-        });
+        );
 
         const data = await response.json();
 
@@ -803,15 +792,8 @@ const index = () => {
         return;
       }
 
-      const token = await firebaseUser.getIdToken();
-
-      const response = await fetch(
+      const response = await authenticatedFetch(
         `${API_URL}/api/resume/${resumeId}/version/${versionNumber}/download`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        },
       );
 
       if (!response.ok) {

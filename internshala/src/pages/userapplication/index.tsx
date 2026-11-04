@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react";
 import { Building2, Calendar, Mail, Tag, User } from "lucide-react";
-import { useSelector } from "react-redux";
-import { selectuser } from "@/feature/userSlice";
-import axios from "axios";
+import { authenticatedFetch } from "@/utils/authenticatedFetch";
 import { useTranslation } from "react-i18next";
 
 const getStatusColor = (status: any) => {
@@ -28,29 +26,29 @@ const index = () => {
   const [searchTerm, setsearchTerm] = useState("");
   const [filter, setFilter] = useState("all");
 
-  const user = useSelector(selectuser);
-
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await axios.get(
-          "https://internshala-78tb.onrender.com/api/application",
+        const response = await authenticatedFetch(
+          "https://internshala-78tb.onrender.com/api/application/me",
         );
 
-        setApplications(res.data);
+        const data = await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+          throw new Error(data.error || "USER_APPLICATIONS_FETCH_FAILED");
+        }
+
+        setApplications(data.applications || []);
       } catch (error) {
-        console.log(error);
+        console.error("User applications fetch failed:", error);
       }
     };
 
     fetchData();
   }, []);
 
-  const userapplication = Applications.filter(
-    (app: any) => app.user?.name === user?.name,
-  );
-
-  const filteredapplications = userapplication.filter((application: any) => {
+  const filteredapplications = Applications.filter((application: any) => {
     const searchmatch =
       application.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
       application.category.toLowerCase().includes(searchTerm.toLowerCase());

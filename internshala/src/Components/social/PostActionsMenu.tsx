@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Flag, MoreHorizontal, Pencil, Trash2, X } from "lucide-react";
-import { auth } from "@/firebase/firebase";
+import { authenticatedFetch } from "@/utils/authenticatedFetch";
 import { toast } from "react-toastify";
 import { useTranslation } from "react-i18next";
 
@@ -102,18 +102,6 @@ export default function PostActionsMenu({
     };
   }, []);
 
-  const getToken = async () => {
-    await auth.authStateReady();
-
-    const firebaseUser = auth.currentUser;
-
-    if (!firebaseUser) {
-      throw new Error("LOGIN_REQUIRED");
-    }
-
-    return firebaseUser.getIdToken();
-  };
-
   const openEdit = () => {
     setEditText(text);
     setEditPrivacy(privacy);
@@ -129,19 +117,21 @@ export default function PostActionsMenu({
     try {
       setBusy(true);
 
-      const idToken = await getToken();
+      const response = await authenticatedFetch(
+        `${API_URL}/api/posts/${postId}`,
+        {
+          method: "PUT",
 
-      const response = await fetch(`${API_URL}/api/posts/${postId}`, {
-        method: "PUT",
-        headers: {
-          Authorization: `Bearer ${idToken}`,
-          "Content-Type": "application/json",
+          headers: {
+            "Content-Type": "application/json",
+          },
+
+          body: JSON.stringify({
+            text: trimmedText,
+            privacy: editPrivacy,
+          }),
         },
-        body: JSON.stringify({
-          text: trimmedText,
-          privacy: editPrivacy,
-        }),
-      });
+      );
 
       const data = await response.json();
 
@@ -191,14 +181,12 @@ export default function PostActionsMenu({
     try {
       setBusy(true);
 
-      const idToken = await getToken();
-
-      const response = await fetch(`${API_URL}/api/posts/${postId}`, {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${idToken}`,
+      const response = await authenticatedFetch(
+        `${API_URL}/api/posts/${postId}`,
+        {
+          method: "DELETE",
         },
-      });
+      );
 
       const data = await response.json();
 
@@ -233,19 +221,21 @@ export default function PostActionsMenu({
     try {
       setBusy(true);
 
-      const idToken = await getToken();
+      const response = await authenticatedFetch(
+        `${API_URL}/api/posts/${postId}/reports`,
+        {
+          method: "POST",
 
-      const response = await fetch(`${API_URL}/api/posts/${postId}/reports`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${idToken}`,
-          "Content-Type": "application/json",
+          headers: {
+            "Content-Type": "application/json",
+          },
+
+          body: JSON.stringify({
+            reason: reportReason,
+            details: reportDetails.trim(),
+          }),
         },
-        body: JSON.stringify({
-          reason: reportReason,
-          details: reportDetails.trim(),
-        }),
-      });
+      );
 
       const data = await response.json();
 

@@ -437,7 +437,8 @@
     "analytics": "Analíticas",
     "analyticsDescription": "Ver informes y estadísticas detallados",
     "settings": "Configuración",
-    "settingsDescription": "Configurar las preferencias del sistema"
+    "settingsDescription": "Configurar las preferencias del sistema",
+    "logout": "Cerrar sesión"
   },
   "history": {
     "title": "Historial de idiomas",
@@ -778,6 +779,22 @@
     "signupSuccess": "Cuenta creada correctamente.",
     "loginSecurityNote": "Tus credenciales se gestionan de forma segura mediante Firebase Authentication.",
     "signupSecurityNote": "Al crear una cuenta, aceptas mantener seguras tus credenciales de acceso.",
+    "loginOtpTitle": "Verifica tu inicio de sesión",
+    "loginOtpDescription": "Introduce el código de verificación enviado a {{destination}}.",
+    "loginOtpSecurityNotice": "Los inicios de sesión desde Google Chrome requieren verificación OTP por correo antes de conceder acceso.",
+    "loginOtpLabel": "Código de verificación",
+    "loginOtpPlaceholder": "000000",
+    "loginOtpExpires": "El OTP caduca en",
+    "loginOtpExpiredLabel": "Caducado",
+    "loginOtpAttempts": "Intentos restantes",
+    "verifyLoginOtp": "Verificar inicio de sesión",
+    "verifyingLoginOtp": "Verificando...",
+    "resendLoginOtp": "Reenviar OTP",
+    "resendLoginOtpIn": "Reenviar en {{seconds}}s",
+    "loginOtpResendLimitReached": "Límite de reenvíos alcanzado",
+    "loginOtpResendsRemaining": "{{count}} reenvíos restantes",
+    "loginOtpResent": "Se ha enviado un nuevo código de verificación.",
+    "backToCredentials": "Volver al inicio de sesión",
     "errors": {
       "loginRequired": "Introduce tu correo electrónico y contraseña.",
       "signupRequired": "Completa todos los campos obligatorios.",
@@ -796,7 +813,24 @@
       "profileSyncFailed": "Has iniciado sesión, pero no se pudo sincronizar tu perfil. Inténtalo de nuevo.",
       "signupProfileSyncFailed": "Tu cuenta se creó, pero no se pudo sincronizar tu perfil. Vuelve a iniciar sesión.",
       "invalidPhone": "Introduce un número móvil válido con el código de país.",
-      "phoneAlreadyInUse": "Este número móvil ya está vinculado a otra cuenta."
+      "phoneAlreadyInUse": "Este número móvil ya está vinculado a otra cuenta.",
+      "mobileLoginOutsideHours": "El acceso desde dispositivos móviles solo está permitido entre las 10:00 y las 13:00 IST.",
+      "loginEmailUnavailable": "No hay una dirección de correo registrada disponible para verificar el inicio de sesión.",
+      "loginOtpDeliveryFailed": "No pudimos enviar el código de verificación. Inténtalo de nuevo.",
+      "loginChallengeClosed": "Esta sesión de verificación ya no está activa. Inicia sesión de nuevo.",
+      "loginChallengeAlreadyUsed": "Esta verificación de inicio de sesión ya se ha completado.",
+      "loginChallengeExpired": "La sesión de verificación ha caducado. Inicia sesión de nuevo.",
+      "invalidLoginOtpFormat": "Introduce el código completo de 6 dígitos.",
+      "invalidLoginOtp": "El código de verificación es incorrecto.",
+      "invalidLoginOtpWithAttempts": "Código incorrecto. Quedan {{count}} intentos.",
+      "loginOtpExpired": "Este código ha caducado. Solicita uno nuevo.",
+      "loginOtpAttemptsExceeded": "Demasiados intentos incorrectos. Inicia sesión de nuevo.",
+      "loginOtpResendCooldown": "Espera antes de solicitar otro código.",
+      "loginOtpResendLimit": "Has alcanzado el límite de reenvíos.",
+      "loginOtpResendFailed": "No se pudo reenviar el código. Inténtalo de nuevo.",
+      "loginOtpVerificationFailed": "No se pudo verificar el código de inicio de sesión.",
+      "loginSecurityFailed": "No se pudo completar la comprobación de seguridad del inicio de sesión.",
+      "loginVerificationNetworkError": "La conexión se interrumpió durante la verificación. Inténtalo de nuevo."
     }
   },
   "forgotPassword": {

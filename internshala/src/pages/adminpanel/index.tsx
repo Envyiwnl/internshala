@@ -1,4 +1,22 @@
-import { Briefcase, Mail, Send, Users, BarChart, Settings } from "lucide-react";
+import {
+  LogOut,
+  Briefcase,
+  Mail,
+  Send,
+  Users,
+  BarChart,
+  Settings,
+} from "lucide-react";
+
+import { useEffect, useState } from "react";
+import { useRouter } from "next/router";
+
+import {
+  adminAuthenticatedFetch,
+  AdminAuthenticatedFetchError,
+} from "@/utils/adminAuthenticatedFetch";
+
+import { clearAdminSession } from "@/utils/adminSession";
 import Link from "next/link";
 import { useTranslation } from "react-i18next";
 
@@ -76,18 +94,80 @@ const menuItems = [
 
 const index = () => {
   const { t } = useTranslation();
+  const router = useRouter();
+
+  const [checkingSession, setCheckingSession] = useState(true);
+
+  useEffect(() => {
+    const verifySession = async () => {
+      try {
+        const response = await adminAuthenticatedFetch(
+          "https://internshala-78tb.onrender.com/api/admin/session",
+        );
+
+        if (!response.ok) {
+          clearAdminSession();
+
+          await router.replace("/adminlogin");
+
+          return;
+        }
+
+        setCheckingSession(false);
+      } catch (error) {
+        if (error instanceof AdminAuthenticatedFetchError) {
+          await router.replace("/adminlogin");
+
+          return;
+        }
+
+        console.error("Admin session check failed:", error);
+
+        clearAdminSession();
+
+        await router.replace("/adminlogin");
+      }
+    };
+
+    verifySession();
+  }, [router]);
+
+  const handleLogout = async () => {
+    clearAdminSession();
+
+    await router.replace("/adminlogin");
+  };
+
+  if (checkingSession) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold text-gray-900">
-            {t("admin.dashboard")}
-          </h1>
+        <div className="mb-8 flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">
+              {t("admin.dashboard")}
+            </h1>
 
-          <p className="mt-1 text-sm text-gray-500">
-            {t("admin.dashboardDescription")}
-          </p>
+            <p className="mt-1 text-sm text-gray-500">
+              {t("admin.dashboardDescription")}
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+          >
+            <LogOut className="h-4 w-4" />
+            {t("admin.logout")}
+          </button>
         </div>
 
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-8">

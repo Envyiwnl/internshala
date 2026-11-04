@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Search, UserRound, UserRoundCheck, UsersRound } from "lucide-react";
-import { auth } from "@/firebase/firebase";
+import { authenticatedFetch } from "@/utils/authenticatedFetch";
 import { toast } from "react-toastify";
 import { useTranslation } from "react-i18next";
 
@@ -35,26 +35,8 @@ export default function SocialFollowing() {
   const [busyUserId, setBusyUserId] = useState("");
   const [error, setError] = useState("");
 
-  const getToken = async () => {
-    await auth.authStateReady();
-
-    const firebaseUser = auth.currentUser;
-
-    if (!firebaseUser) {
-      throw new Error("LOGIN_REQUIRED");
-    }
-
-    return firebaseUser.getIdToken();
-  };
-
   const loadProfile = async () => {
-    const idToken = await getToken();
-
-    const response = await fetch(`${API_URL}/api/social/me`, {
-      headers: {
-        Authorization: `Bearer ${idToken}`,
-      },
-    });
+    const response = await authenticatedFetch(`${API_URL}/api/social/me`);
 
     const data = await response.json();
 
@@ -73,19 +55,12 @@ export default function SocialFollowing() {
       setLoading(true);
       setError("");
 
-      const idToken = await getToken();
-
       const searchParam = query.trim()
         ? `?search=${encodeURIComponent(query.trim())}`
         : "";
 
-      const response = await fetch(
+      const response = await authenticatedFetch(
         `${API_URL}/api/social/users${searchParam}`,
-        {
-          headers: {
-            Authorization: `Bearer ${idToken}`,
-          },
-        },
       );
 
       const data = await response.json();
@@ -111,17 +86,10 @@ export default function SocialFollowing() {
       const resolvedUsername =
         username || currentUsername || (await loadProfile());
 
-      const idToken = await getToken();
-
-      const response = await fetch(
+      const response = await authenticatedFetch(
         `${API_URL}/api/social/users/${encodeURIComponent(
           resolvedUsername,
         )}/following`,
-        {
-          headers: {
-            Authorization: `Bearer ${idToken}`,
-          },
-        },
       );
 
       const data = await response.json();
@@ -175,14 +143,12 @@ export default function SocialFollowing() {
     try {
       setBusyUserId(user.id);
 
-      const idToken = await getToken();
-
-      const response = await fetch(`${API_URL}/api/social/follows/${user.id}`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${idToken}`,
+      const response = await authenticatedFetch(
+        `${API_URL}/api/social/follows/${user.id}`,
+        {
+          method: "POST",
         },
-      });
+      );
 
       const data = await response.json();
 
@@ -237,14 +203,12 @@ export default function SocialFollowing() {
     try {
       setBusyUserId(user.id);
 
-      const idToken = await getToken();
-
-      const response = await fetch(`${API_URL}/api/social/follows/${user.id}`, {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${idToken}`,
+      const response = await authenticatedFetch(
+        `${API_URL}/api/social/follows/${user.id}`,
+        {
+          method: "DELETE",
         },
-      });
+      );
 
       const data = await response.json();
 

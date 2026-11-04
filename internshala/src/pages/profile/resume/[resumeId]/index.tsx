@@ -13,8 +13,9 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { ChangeEvent, FormEvent, useEffect, useState } from "react";
+import { ChangeEvent, SubmitEvent, useEffect, useState } from "react";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
+import { authenticatedFetch } from "@/utils/authenticatedFetch";
 import { getDownloadURL, getStorage, ref, uploadBytes } from "firebase/storage";
 import { useSelector } from "react-redux";
 import { useTranslation } from "react-i18next";
@@ -308,14 +309,12 @@ const index = () => {
         setLoading(true);
         setError("");
 
-        const token = await firebaseUser.getIdToken();
-
-        const response = await fetch(`${API_URL}/api/resume/${resumeId}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
+        const response = await authenticatedFetch(
+          `${API_URL}/api/resume/${resumeId}`,
+          {
+            signal: controller.signal,
           },
-          signal: controller.signal,
-        });
+        );
 
         const data = await response.json();
 
@@ -583,8 +582,6 @@ const index = () => {
         return;
       }
 
-      const token = await firebaseUser.getIdToken();
-
       const finalContent = {
         ...content,
         profilePhoto: includeProfilePhoto
@@ -596,18 +593,23 @@ const index = () => {
           .filter(Boolean),
       };
 
-      const response = await fetch(`${API_URL}/api/resume/${resumeId}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+      const response = await authenticatedFetch(
+        `${API_URL}/api/resume/${resumeId}`,
+        {
+          method: "PUT",
+
+          headers: {
+            "Content-Type": "application/json",
+          },
+
+          body: JSON.stringify({
+            title: title.trim() || t("resumeBuilder.defaultResumeTitle"),
+
+            content: finalContent,
+            customization,
+          }),
         },
-        body: JSON.stringify({
-          title: title.trim() || t("resumeBuilder.defaultResumeTitle"),
-          content: finalContent,
-          customization,
-        }),
-      });
+      );
 
       const data = await response.json();
 
@@ -635,7 +637,7 @@ const index = () => {
     }
   };
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = (e: SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
     saveResume(false);
   };

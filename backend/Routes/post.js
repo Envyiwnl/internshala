@@ -23,6 +23,7 @@ const {
 const cloudinary = require("../config/cloudinary");
 
 const verifyFirebaseToken = require("../middleware/verifyFirebaseToken");
+const verifyLoginSession = require("../middleware/verifyLoginSession");
 const {
   postCreationLimiter,
   commentCreationLimiter,
@@ -34,7 +35,7 @@ const { validateSocialContent } = require("../utils/ContentValidation");
 
 const router = express.Router();
 
-router.use(verifyFirebaseToken);
+router.use(verifyFirebaseToken, verifyLoginSession);
 
 const ALLOWED_PRIVACY = new Set(["public", "friends", "followers", "private"]);
 const MAX_POST_TEXT_LENGTH = 3000;

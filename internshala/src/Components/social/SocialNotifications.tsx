@@ -11,7 +11,7 @@ import {
   UserRound,
   UserRoundCheck,
 } from "lucide-react";
-import { auth } from "@/firebase/firebase";
+import { authenticatedFetch } from "@/utils/authenticatedFetch";
 import { toast } from "react-toastify";
 import { useTranslation } from "react-i18next";
 
@@ -55,37 +55,15 @@ export default function SocialNotifications() {
   const [busyNotificationId, setBusyNotificationId] = useState("");
   const [error, setError] = useState("");
 
-  const getToken = async () => {
-    await auth.authStateReady();
-
-    const firebaseUser = auth.currentUser;
-
-    if (!firebaseUser) {
-      throw new Error("LOGIN_REQUIRED");
-    }
-
-    return firebaseUser.getIdToken();
-  };
-
   const loadNotifications = async () => {
     try {
       setLoading(true);
       setError("");
 
-      const idToken = await getToken();
-
       const [notificationsResponse, countResponse] = await Promise.all([
-        fetch(`${API_URL}/api/notifications?limit=50`, {
-          headers: {
-            Authorization: `Bearer ${idToken}`,
-          },
-        }),
+        authenticatedFetch(`${API_URL}/api/notifications?limit=50`),
 
-        fetch(`${API_URL}/api/notifications/unread-count`, {
-          headers: {
-            Authorization: `Bearer ${idToken}`,
-          },
-        }),
+        authenticatedFetch(`${API_URL}/api/notifications/unread-count`),
       ]);
 
       const notificationsData = await notificationsResponse.json();
@@ -123,15 +101,10 @@ export default function SocialNotifications() {
     try {
       setBusyNotificationId(notification.id);
 
-      const idToken = await getToken();
-
-      const response = await fetch(
+      const response = await authenticatedFetch(
         `${API_URL}/api/notifications/${notification.id}/read`,
         {
           method: "PATCH",
-          headers: {
-            Authorization: `Bearer ${idToken}`,
-          },
         },
       );
 
@@ -162,14 +135,12 @@ export default function SocialNotifications() {
     try {
       setMarkingAll(true);
 
-      const idToken = await getToken();
-
-      const response = await fetch(`${API_URL}/api/notifications/read-all`, {
-        method: "PATCH",
-        headers: {
-          Authorization: `Bearer ${idToken}`,
+      const response = await authenticatedFetch(
+        `${API_URL}/api/notifications/read-all`,
+        {
+          method: "PATCH",
         },
-      });
+      );
 
       const data = await response.json();
 

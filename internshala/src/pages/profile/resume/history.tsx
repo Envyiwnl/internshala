@@ -13,6 +13,7 @@ import {
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
+import { authenticatedFetch } from "@/utils/authenticatedFetch";
 import { useTranslation } from "react-i18next";
 
 const API_URL = "https://internshala-78tb.onrender.com";
@@ -122,35 +123,17 @@ const index = () => {
     );
   };
 
-  const getAuthenticatedToken = async () => {
-    const firebaseUser = getAuth().currentUser;
-
-    if (!firebaseUser) {
-      throw new Error("AUTHENTICATION_REQUIRED");
-    }
-
-    return firebaseUser.getIdToken();
-  };
-
-  const loadHistory = async (firebaseUser: any, signal?: AbortSignal) => {
+  const loadHistory = async (signal?: AbortSignal) => {
     try {
       setLoading(true);
       setError("");
 
-      const token = await firebaseUser.getIdToken();
-
       const [historyResponse, paymentResponse] = await Promise.all([
-        fetch(`${API_URL}/api/resume/history`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+        authenticatedFetch(`${API_URL}/api/resume/history`, {
           signal,
         }),
 
-        fetch(`${API_URL}/api/resume/payments`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+        authenticatedFetch(`${API_URL}/api/resume/payments`, {
           signal,
         }),
       ]);
@@ -205,7 +188,7 @@ const index = () => {
         return;
       }
 
-      await loadHistory(firebaseUser, controller.signal);
+      await loadHistory(controller.signal);
     });
 
     return () => {
@@ -240,7 +223,7 @@ const index = () => {
       return;
     }
 
-    await loadHistory(firebaseUser);
+    await loadHistory();
   };
 
   const downloadVersion = async (
@@ -254,15 +237,8 @@ const index = () => {
       setDownloadingKey(key);
       setError("");
 
-      const token = await getAuthenticatedToken();
-
-      const response = await fetch(
+      const response = await authenticatedFetch(
         `${API_URL}/api/resume/${resumeId}/version/${versionNumber}/download`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        },
       );
 
       if (!response.ok) {
@@ -319,15 +295,8 @@ const index = () => {
       setInvoiceError("");
       setInvoice(null);
 
-      const token = await getAuthenticatedToken();
-
-      const response = await fetch(
+      const response = await authenticatedFetch(
         `${API_URL}/api/resume/payments/${paymentId}/invoice`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        },
       );
 
       const data = await response.json();

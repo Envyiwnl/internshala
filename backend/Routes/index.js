@@ -13,6 +13,7 @@ const post = require("./post");
 const notification = require("./notification");
 const feed = require("./feed");
 const media = require("./media");
+const loginSecurity = require("./loginSecurity");
 
 router.use("/admin", admin);
 router.use("/internship", intern);
@@ -22,6 +23,7 @@ router.use("/application", application);
 router.use("/user", user);
 router.use("/language", language);
 router.use("/password-reset", passwordReset);
+router.use("/login-security", loginSecurity);
 router.use("/social", social);
 router.use("/posts", post);
 router.use("/notifications", notification);

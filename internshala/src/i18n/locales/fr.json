@@ -461,7 +461,8 @@
     "analytics": "Analyses",
     "analyticsDescription": "Voir les rapports et statistiques détaillés",
     "settings": "Paramètres",
-    "settingsDescription": "Configurer les préférences du système"
+    "settingsDescription": "Configurer les préférences du système",
+    "logout": "Se déconnecter"
   },
 
   "status": {
@@ -785,6 +786,22 @@
     "optional": "(Facultatif)",
     "phonePlaceholder": "+33612345678",
     "phoneHint": "Ajoutez votre numéro avec l'indicatif du pays si vous souhaitez pouvoir récupérer votre mot de passe par SMS.",
+    "loginOtpTitle": "Vérifiez votre connexion",
+    "loginOtpDescription": "Saisissez le code de vérification envoyé à {{destination}}.",
+    "loginOtpSecurityNotice": "Les connexions depuis Google Chrome nécessitent une vérification OTP par e-mail avant que l'accès soit accordé.",
+    "loginOtpLabel": "Code de vérification",
+    "loginOtpPlaceholder": "000000",
+    "loginOtpExpires": "L'OTP expire dans",
+    "loginOtpExpiredLabel": "Expiré",
+    "loginOtpAttempts": "Tentatives restantes",
+    "verifyLoginOtp": "Vérifier la connexion",
+    "verifyingLoginOtp": "Vérification...",
+    "resendLoginOtp": "Renvoyer l'OTP",
+    "resendLoginOtpIn": "Renvoyer dans {{seconds}} s",
+    "loginOtpResendLimitReached": "Limite de renvoi atteinte",
+    "loginOtpResendsRemaining": "{{count}} renvois restants",
+    "loginOtpResent": "Un nouveau code de vérification a été envoyé.",
+    "backToCredentials": "Retour à la connexion",
     "errors": {
       "loginRequired": "Veuillez saisir votre adresse e-mail et votre mot de passe.",
       "signupRequired": "Veuillez remplir tous les champs obligatoires.",
@@ -803,7 +820,24 @@
       "profileSyncFailed": "Vous êtes connecté, mais votre profil n'a pas pu être synchronisé. Veuillez réessayer.",
       "signupProfileSyncFailed": "Votre compte a été créé, mais votre profil n'a pas pu être synchronisé. Veuillez vous reconnecter.",
       "invalidPhone": "Saisissez un numéro de téléphone valide avec l'indicatif du pays.",
-      "phoneAlreadyInUse": "Ce numéro de téléphone est déjà associé à un autre compte."
+      "phoneAlreadyInUse": "Ce numéro de téléphone est déjà associé à un autre compte.",
+      "mobileLoginOutsideHours": "La connexion sur mobile est autorisée uniquement entre 10 h 00 et 13 h 00 IST.",
+      "loginEmailUnavailable": "Aucune adresse e-mail enregistrée n'est disponible pour vérifier la connexion.",
+      "loginOtpDeliveryFailed": "Nous n'avons pas pu envoyer le code de vérification. Réessayez.",
+      "loginChallengeClosed": "Cette session de vérification n'est plus active. Reconnectez-vous.",
+      "loginChallengeAlreadyUsed": "Cette vérification de connexion a déjà été effectuée.",
+      "loginChallengeExpired": "Votre session de vérification a expiré. Reconnectez-vous.",
+      "invalidLoginOtpFormat": "Saisissez le code de vérification complet à 6 chiffres.",
+      "invalidLoginOtp": "Le code de vérification est incorrect.",
+      "invalidLoginOtpWithAttempts": "Code incorrect. Il reste {{count}} tentatives.",
+      "loginOtpExpired": "Ce code a expiré. Demandez un nouveau code.",
+      "loginOtpAttemptsExceeded": "Trop de tentatives incorrectes. Reconnectez-vous.",
+      "loginOtpResendCooldown": "Veuillez attendre avant de demander un nouveau code.",
+      "loginOtpResendLimit": "Vous avez atteint la limite de renvoi des codes.",
+      "loginOtpResendFailed": "Impossible de renvoyer le code. Réessayez.",
+      "loginOtpVerificationFailed": "Impossible de vérifier le code de connexion.",
+      "loginSecurityFailed": "Impossible de terminer le contrôle de sécurité de connexion.",
+      "loginVerificationNetworkError": "La connexion réseau a été interrompue pendant la vérification. Réessayez."
     }
   },
   "forgotPassword": {

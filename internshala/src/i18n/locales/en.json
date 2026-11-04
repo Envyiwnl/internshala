@@ -461,7 +461,8 @@
     "analytics": "Analytics",
     "analyticsDescription": "View detailed reports and statistics",
     "settings": "Settings",
-    "settingsDescription": "Configure system preferences"
+    "settingsDescription": "Configure system preferences",
+    "logout": "Logout"
   },
 
   "status": {
@@ -786,6 +787,22 @@
     "signupSuccess": "Account created successfully.",
     "loginSecurityNote": "Your login credentials are securely handled by Firebase Authentication.",
     "signupSecurityNote": "By creating an account, you agree to keep your login credentials secure.",
+    "loginOtpTitle": "Verify your login",
+    "loginOtpDescription": "Enter the verification code sent to {{destination}}.",
+    "loginOtpSecurityNotice": "Google Chrome logins require email OTP verification before access is granted.",
+    "loginOtpLabel": "Verification Code",
+    "loginOtpPlaceholder": "000000",
+    "loginOtpExpires": "OTP expires in",
+    "loginOtpExpiredLabel": "Expired",
+    "loginOtpAttempts": "Attempts remaining",
+    "verifyLoginOtp": "Verify Login",
+    "verifyingLoginOtp": "Verifying...",
+    "resendLoginOtp": "Resend OTP",
+    "resendLoginOtpIn": "Resend in {{seconds}}s",
+    "loginOtpResendLimitReached": "Resend limit reached",
+    "loginOtpResendsRemaining": "{{count}} resends remaining",
+    "loginOtpResent": "A new login verification code has been sent.",
+    "backToCredentials": "Back to login",
     "errors": {
       "loginRequired": "Please enter your email and password.",
       "signupRequired": "Please complete all required fields.",
@@ -804,7 +821,24 @@
       "profileSyncFailed": "You were signed in, but your profile could not be synchronized. Please try again.",
       "signupProfileSyncFailed": "Your account was created, but your profile could not be synchronized. Please log in again.",
       "invalidPhone": "Enter a valid mobile number including the country code.",
-      "phoneAlreadyInUse": "This mobile number is already linked to another account."
+      "phoneAlreadyInUse": "This mobile number is already linked to another account.",
+      "mobileLoginOutsideHours": "Mobile login is allowed only between 10:00 AM and 1:00 PM IST.",
+      "loginEmailUnavailable": "No registered email address is available for login verification.",
+      "loginOtpDeliveryFailed": "We could not send your login verification code. Please try again.",
+      "loginChallengeClosed": "This login verification session is no longer active. Please log in again.",
+      "loginChallengeAlreadyUsed": "This login verification has already been completed.",
+      "loginChallengeExpired": "Your login verification session has expired. Please log in again.",
+      "invalidLoginOtpFormat": "Enter the complete 6-digit verification code.",
+      "invalidLoginOtp": "The verification code is incorrect.",
+      "invalidLoginOtpWithAttempts": "Incorrect verification code. {{count}} attempts remaining.",
+      "loginOtpExpired": "This verification code has expired. Request a new code.",
+      "loginOtpAttemptsExceeded": "Too many incorrect verification attempts. Please log in again.",
+      "loginOtpResendCooldown": "Please wait before requesting another verification code.",
+      "loginOtpResendLimit": "You have reached the verification code resend limit.",
+      "loginOtpResendFailed": "Unable to resend the verification code. Please try again.",
+      "loginOtpVerificationFailed": "Unable to verify the login code. Please try again.",
+      "loginSecurityFailed": "Unable to complete the login security check. Please try again.",
+      "loginVerificationNetworkError": "The connection was interrupted during login verification. Please try again."
     }
   },
   "forgotPassword": {

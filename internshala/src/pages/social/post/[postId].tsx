@@ -10,6 +10,7 @@ import {
   UsersRound,
 } from "lucide-react";
 import { auth } from "@/firebase/firebase";
+import { authenticatedFetch } from "@/utils/authenticatedFetch";
 import { useTranslation } from "react-i18next";
 
 const API_URL = "https://internshala-78tb.onrender.com";
@@ -79,15 +80,8 @@ export default function SharedPostPage() {
           return;
         }
 
-        const idToken = await firebaseUser.getIdToken();
-
-        const response = await fetch(
+        const response = await authenticatedFetch(
           `${API_URL}/api/posts/${router.query.postId}`,
-          {
-            headers: {
-              Authorization: `Bearer ${idToken}`,
-            },
-          },
         );
 
         const data = await response.json();
@@ -109,13 +103,10 @@ export default function SharedPostPage() {
         setPost(data.post);
 
         try {
-          const viewResponse = await fetch(
+          const viewResponse = await authenticatedFetch(
             `${API_URL}/api/posts/${data.post.id}/views`,
             {
               method: "POST",
-              headers: {
-                Authorization: `Bearer ${idToken}`,
-              },
             },
           );
 

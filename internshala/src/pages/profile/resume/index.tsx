@@ -11,6 +11,7 @@ import {
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
+import { authenticatedFetch } from "@/utils/authenticatedFetch";
 import { useTranslation } from "react-i18next";
 
 const API_URL = "https://internshala-78tb.onrender.com";
@@ -27,18 +28,13 @@ const index = () => {
   const [settingDefaultId, setSettingDefaultId] = useState("");
   const [defaultActionError, setDefaultActionError] = useState("");
 
-  const loadResumeData = async (firebaseUser: any, signal?: AbortSignal) => {
+  const loadResumeData = async (signal?: AbortSignal) => {
     try {
       setLoading(true);
       setError("");
       setDefaultActionError("");
 
-      const token = await firebaseUser.getIdToken();
-
-      const resumeResponse = await fetch(`${API_URL}/api/resume`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+      const resumeResponse = await authenticatedFetch(`${API_URL}/api/resume`, {
         signal,
       });
 
@@ -61,12 +57,12 @@ const index = () => {
       setIsPremium(true);
       setResumes(resumeData.resumes || []);
 
-      const paymentResponse = await fetch(`${API_URL}/api/resume/payments`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
+      const paymentResponse = await authenticatedFetch(
+        `${API_URL}/api/resume/payments`,
+        {
+          signal,
         },
-        signal,
-      });
+      );
 
       const paymentData = await paymentResponse.json();
 
@@ -101,7 +97,7 @@ const index = () => {
         return;
       }
 
-      await loadResumeData(firebaseUser, controller.signal);
+      await loadResumeData(controller.signal);
     });
 
     return () => {
@@ -140,7 +136,7 @@ const index = () => {
       return;
     }
 
-    await loadResumeData(firebaseUser);
+    await loadResumeData();
   };
 
   const handleSetDefault = async (resumeId: string) => {
@@ -155,15 +151,10 @@ const index = () => {
       setSettingDefaultId(resumeId);
       setDefaultActionError("");
 
-      const token = await firebaseUser.getIdToken();
-
-      const response = await fetch(
+      const response = await authenticatedFetch(
         `${API_URL}/api/resume/${resumeId}/default`,
         {
           method: "PUT",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
         },
       );
 

@@ -462,7 +462,8 @@
     "analytics": "Análises",
     "analyticsDescription": "Visualize relatórios e estatísticas detalhadas",
     "settings": "Configurações",
-    "settingsDescription": "Configure as preferências do sistema"
+    "settingsDescription": "Configure as preferências do sistema",
+    "logout": "Sair"
   },
 
   "status": {
@@ -787,6 +788,22 @@
     "optional": "(Opcional)",
     "phonePlaceholder": "+5511999999999",
     "phoneHint": "Adicione seu número com o código do país se quiser recuperar sua senha por SMS.",
+    "loginOtpTitle": "Verifique seu login",
+    "loginOtpDescription": "Digite o código de verificação enviado para {{destination}}.",
+    "loginOtpSecurityNotice": "Logins pelo Google Chrome exigem verificação por OTP enviado por e-mail antes que o acesso seja liberado.",
+    "loginOtpLabel": "Código de verificação",
+    "loginOtpPlaceholder": "000000",
+    "loginOtpExpires": "OTP expira em",
+    "loginOtpExpiredLabel": "Expirado",
+    "loginOtpAttempts": "Tentativas restantes",
+    "verifyLoginOtp": "Verificar Login",
+    "verifyingLoginOtp": "Verificando...",
+    "resendLoginOtp": "Reenviar OTP",
+    "resendLoginOtpIn": "Reenviar em {{seconds}}s",
+    "loginOtpResendLimitReached": "Limite de reenvios atingido",
+    "loginOtpResendsRemaining": "{{count}} reenvios restantes",
+    "loginOtpResent": "Um novo código de verificação foi enviado.",
+    "backToCredentials": "Voltar ao login",
     "errors": {
       "loginRequired": "Digite seu e-mail e senha.",
       "signupRequired": "Preencha todos os campos obrigatórios.",
@@ -805,7 +822,24 @@
       "profileSyncFailed": "Você entrou, mas seu perfil não pôde ser sincronizado. Tente novamente.",
       "signupProfileSyncFailed": "Sua conta foi criada, mas seu perfil não pôde ser sincronizado. Entre novamente.",
       "invalidPhone": "Digite um número de celular válido com o código do país.",
-      "phoneAlreadyInUse": "Este número de celular já está vinculado a outra conta."
+      "phoneAlreadyInUse": "Este número de celular já está vinculado a outra conta.",
+      "mobileLoginOutsideHours": "O login por celular é permitido somente entre 10:00 e 13:00 IST.",
+      "loginEmailUnavailable": "Não há um endereço de e-mail cadastrado disponível para verificar o login.",
+      "loginOtpDeliveryFailed": "Não foi possível enviar o código de verificação. Tente novamente.",
+      "loginChallengeClosed": "Esta sessão de verificação não está mais ativa. Entre novamente.",
+      "loginChallengeAlreadyUsed": "Esta verificação de login já foi concluída.",
+      "loginChallengeExpired": "Sua sessão de verificação expirou. Entre novamente.",
+      "invalidLoginOtpFormat": "Digite o código completo de 6 dígitos.",
+      "invalidLoginOtp": "O código de verificação está incorreto.",
+      "invalidLoginOtpWithAttempts": "Código incorreto. Restam {{count}} tentativas.",
+      "loginOtpExpired": "Este código expirou. Solicite um novo.",
+      "loginOtpAttemptsExceeded": "Muitas tentativas incorretas. Entre novamente.",
+      "loginOtpResendCooldown": "Aguarde antes de solicitar outro código.",
+      "loginOtpResendLimit": "Você atingiu o limite de reenvios.",
+      "loginOtpResendFailed": "Não foi possível reenviar o código. Tente novamente.",
+      "loginOtpVerificationFailed": "Não foi possível verificar o código de login.",
+      "loginSecurityFailed": "Não foi possível concluir a verificação de segurança do login.",
+      "loginVerificationNetworkError": "A conexão foi interrompida durante a verificação. Tente novamente."
     }
   },
   "forgotPassword": {

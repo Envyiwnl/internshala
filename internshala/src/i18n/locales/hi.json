@@ -461,7 +461,8 @@
     "analytics": "एनालिटिक्स",
     "analyticsDescription": "विस्तृत रिपोर्ट और आंकड़े देखें",
     "settings": "सेटिंग्स",
-    "settingsDescription": "सिस्टम प्राथमिकताएं कॉन्फ़िगर करें"
+    "settingsDescription": "सिस्टम प्राथमिकताएं कॉन्फ़िगर करें",
+    "logout": "लॉग आउट"
   },
 
   "status": {
@@ -786,6 +787,22 @@
     "optional": "(वैकल्पिक)",
     "phonePlaceholder": "+919876543210",
     "phoneHint": "यदि आप SMS द्वारा पासवर्ड रिकवरी का विकल्प चाहते हैं तो देश कोड सहित अपना मोबाइल नंबर जोड़ें।",
+    "loginOtpTitle": "अपने लॉगिन को सत्यापित करें",
+    "loginOtpDescription": "{{destination}} पर भेजा गया सत्यापन कोड दर्ज करें।",
+    "loginOtpSecurityNotice": "Google Chrome से लॉगिन करने पर एक्सेस देने से पहले ईमेल OTP सत्यापन आवश्यक है।",
+    "loginOtpLabel": "सत्यापन कोड",
+    "loginOtpPlaceholder": "000000",
+    "loginOtpExpires": "OTP समाप्त होने में",
+    "loginOtpExpiredLabel": "समाप्त",
+    "loginOtpAttempts": "शेष प्रयास",
+    "verifyLoginOtp": "लॉगिन सत्यापित करें",
+    "verifyingLoginOtp": "सत्यापन हो रहा है...",
+    "resendLoginOtp": "OTP दोबारा भेजें",
+    "resendLoginOtpIn": "{{seconds}} सेकंड में दोबारा भेजें",
+    "loginOtpResendLimitReached": "दोबारा भेजने की सीमा पूरी हुई",
+    "loginOtpResendsRemaining": "{{count}} बार दोबारा भेज सकते हैं",
+    "loginOtpResent": "नया लॉगिन सत्यापन कोड भेज दिया गया है।",
+    "backToCredentials": "लॉगिन पर वापस जाएँ",
     "errors": {
       "loginRequired": "कृपया अपना ईमेल और पासवर्ड दर्ज करें।",
       "signupRequired": "कृपया सभी आवश्यक फ़ील्ड भरें।",
@@ -804,7 +821,24 @@
       "profileSyncFailed": "आप लॉग इन हो गए, लेकिन आपकी प्रोफ़ाइल सिंक नहीं हो सकी। कृपया फिर प्रयास करें।",
       "signupProfileSyncFailed": "आपका खाता बन गया, लेकिन प्रोफ़ाइल सिंक नहीं हो सकी। कृपया दोबारा लॉग इन करें।",
       "invalidPhone": "Introduce un número móvil válido con el código de país.",
-      "phoneAlreadyInUse": "Este número móvil ya está vinculado a otra cuenta."
+      "phoneAlreadyInUse": "Este número móvil ya está vinculado a otra cuenta.",
+      "mobileLoginOutsideHours": "मोबाइल लॉगिन केवल सुबह 10:00 बजे से दोपहर 1:00 बजे IST के बीच अनुमत है।",
+      "loginEmailUnavailable": "लॉगिन सत्यापन के लिए कोई पंजीकृत ईमेल उपलब्ध नहीं है।",
+      "loginOtpDeliveryFailed": "लॉगिन सत्यापन कोड भेजा नहीं जा सका। कृपया दोबारा प्रयास करें।",
+      "loginChallengeClosed": "यह लॉगिन सत्यापन सत्र अब सक्रिय नहीं है। कृपया दोबारा लॉगिन करें।",
+      "loginChallengeAlreadyUsed": "यह लॉगिन सत्यापन पहले ही पूरा हो चुका है।",
+      "loginChallengeExpired": "आपका लॉगिन सत्यापन सत्र समाप्त हो गया है। कृपया दोबारा लॉगिन करें।",
+      "invalidLoginOtpFormat": "पूरा 6 अंकों का सत्यापन कोड दर्ज करें।",
+      "invalidLoginOtp": "सत्यापन कोड गलत है।",
+      "invalidLoginOtpWithAttempts": "गलत सत्यापन कोड। {{count}} प्रयास शेष हैं।",
+      "loginOtpExpired": "यह सत्यापन कोड समाप्त हो गया है। नया कोड माँगें।",
+      "loginOtpAttemptsExceeded": "बहुत अधिक गलत प्रयास हुए। कृपया दोबारा लॉगिन करें।",
+      "loginOtpResendCooldown": "नया सत्यापन कोड माँगने से पहले प्रतीक्षा करें।",
+      "loginOtpResendLimit": "आप सत्यापन कोड दोबारा भेजने की सीमा तक पहुँच चुके हैं।",
+      "loginOtpResendFailed": "सत्यापन कोड दोबारा नहीं भेजा जा सका।",
+      "loginOtpVerificationFailed": "लॉगिन सत्यापन कोड सत्यापित नहीं किया जा सका।",
+      "loginSecurityFailed": "लॉगिन सुरक्षा जाँच पूरी नहीं हो सकी। कृपया दोबारा प्रयास करें।",
+      "loginVerificationNetworkError": "लॉगिन सत्यापन के दौरान नेटवर्क कनेक्शन टूट गया। कृपया दोबारा प्रयास करें।"
     }
   },
   "forgotPassword": {

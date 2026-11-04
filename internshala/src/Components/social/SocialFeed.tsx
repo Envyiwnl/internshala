@@ -13,7 +13,7 @@ import {
   UsersRound,
   Globe2,
 } from "lucide-react";
-import { auth } from "@/firebase/firebase";
+import { authenticatedFetch } from "@/utils/authenticatedFetch";
 import { useTranslation } from "react-i18next";
 import { toast } from "react-toastify";
 import PostComments from "@/Components/social/PostComments";
@@ -97,18 +97,6 @@ export default function SocialFeed({ refreshKey }: SocialFeedProps) {
   const [currentUserId, setCurrentUserId] = useState("");
   const [selectedHashtag, setSelectedHashtag] = useState("");
 
-  const getToken = async () => {
-    await auth.authStateReady();
-
-    const firebaseUser = auth.currentUser;
-
-    if (!firebaseUser) {
-      throw new Error("LOGIN_REQUIRED");
-    }
-
-    return firebaseUser.getIdToken();
-  };
-
   const setActionBusy = (
     postId: string,
     action: "like" | "save" | "share",
@@ -138,27 +126,12 @@ export default function SocialFeed({ refreshKey }: SocialFeedProps) {
       append ? setLoadingMore(true) : setLoading(true);
       setError("");
 
-      await auth.authStateReady();
-
-      const firebaseUser = auth.currentUser;
-
-      if (!firebaseUser) {
-        throw new Error("LOGIN_REQUIRED");
-      }
-
-      const idToken = await firebaseUser.getIdToken();
-
       const hashtagQuery = selectedHashtag
         ? `&hashtag=${encodeURIComponent(selectedHashtag)}`
         : "";
 
-      const response = await fetch(
+      const response = await authenticatedFetch(
         `${API_URL}/api/feed?limit=${FEED_LIMIT}&offset=${offset}${hashtagQuery}`,
-        {
-          headers: {
-            Authorization: `Bearer ${idToken}`,
-          },
-        },
       );
 
       const data: FeedResponse = await response.json();
@@ -187,14 +160,12 @@ export default function SocialFeed({ refreshKey }: SocialFeedProps) {
     setActionBusy(post.id, "like", true);
 
     try {
-      const idToken = await getToken();
-
-      const response = await fetch(`${API_URL}/api/posts/${post.id}/likes`, {
-        method: post.liked ? "DELETE" : "POST",
-        headers: {
-          Authorization: `Bearer ${idToken}`,
+      const response = await authenticatedFetch(
+        `${API_URL}/api/posts/${post.id}/likes`,
+        {
+          method: post.liked ? "DELETE" : "POST",
         },
-      });
+      );
 
       const data = await response.json();
 
@@ -227,14 +198,12 @@ export default function SocialFeed({ refreshKey }: SocialFeedProps) {
     setActionBusy(post.id, "save", true);
 
     try {
-      const idToken = await getToken();
-
-      const response = await fetch(`${API_URL}/api/posts/${post.id}/saves`, {
-        method: post.saved ? "DELETE" : "POST",
-        headers: {
-          Authorization: `Bearer ${idToken}`,
+      const response = await authenticatedFetch(
+        `${API_URL}/api/posts/${post.id}/saves`,
+        {
+          method: post.saved ? "DELETE" : "POST",
         },
-      });
+      );
 
       const data = await response.json();
 
@@ -298,14 +267,12 @@ export default function SocialFeed({ refreshKey }: SocialFeedProps) {
       if (!shareCompleted) return;
 
       if (!post.shared) {
-        const idToken = await getToken();
-
-        const response = await fetch(`${API_URL}/api/posts/${post.id}/shares`, {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${idToken}`,
+        const response = await authenticatedFetch(
+          `${API_URL}/api/posts/${post.id}/shares`,
+          {
+            method: "POST",
           },
-        });
+        );
 
         const data = await response.json();
 
@@ -343,14 +310,12 @@ export default function SocialFeed({ refreshKey }: SocialFeedProps) {
     viewedPostsRef.current.add(postId);
 
     try {
-      const idToken = await getToken();
-
-      const response = await fetch(`${API_URL}/api/posts/${postId}/views`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${idToken}`,
+      const response = await authenticatedFetch(
+        `${API_URL}/api/posts/${postId}/views`,
+        {
+          method: "POST",
         },
-      });
+      );
 
       const data = await response.json();
 
@@ -387,13 +352,7 @@ export default function SocialFeed({ refreshKey }: SocialFeedProps) {
   useEffect(() => {
     const loadCurrentUser = async () => {
       try {
-        const idToken = await getToken();
-
-        const response = await fetch(`${API_URL}/api/social/me`, {
-          headers: {
-            Authorization: `Bearer ${idToken}`,
-          },
-        });
+        const response = await authenticatedFetch(`${API_URL}/api/social/me`);
 
         const data = await response.json();
 

@@ -1,4 +1,8 @@
-import axios from "axios";
+import { useRouter } from "next/router";
+import {
+  adminAuthenticatedFetch,
+  AdminAuthenticatedFetchError,
+} from "@/utils/adminAuthenticatedFetch";
 import {
   Building2,
   Calendar,
@@ -28,6 +32,7 @@ const getStatusColor = (status: any) => {
 
 const index = () => {
   const { t, i18n } = useTranslation();
+  const router = useRouter();
 
   const [searchTerm, setsearchTerm] = useState("");
   const [filter, setFilter] = useState("all");
@@ -36,18 +41,34 @@ const index = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await axios.get(
+        const response = await adminAuthenticatedFetch(
           "https://internshala-78tb.onrender.com/api/application",
         );
 
-        setApplications(res.data);
+        const data = await response.json().catch(() => ({}));
+
+        if (response.status === 401) {
+          await router.replace("/adminlogin");
+          return;
+        }
+
+        if (!response.ok) {
+          throw new Error(data.error || "APPLICATION_FETCH_FAILED");
+        }
+
+        setApplications(Array.isArray(data) ? data : []);
       } catch (error) {
-        console.log(error);
+        if (error instanceof AdminAuthenticatedFetchError) {
+          await router.replace("/adminlogin");
+          return;
+        }
+
+        console.error("Application fetch failed:", error);
       }
     };
 
     fetchData();
-  }, []);
+  }, [router]);
 
   const filteredapplications = Applications.filter((application: any) => {
     const searchmatch =
@@ -62,22 +83,51 @@ const index = () => {
     return searchmatch && application.status.toLowerCase() === filter;
   });
 
-  const handleacceptandreject = async (id: any, action: any) => {
+  const handleacceptandreject = async (
+    id: string,
+    action: "accepted" | "rejected",
+  ) => {
     try {
-      const res = await axios.put(
+      const response = await adminAuthenticatedFetch(
         `https://internshala-78tb.onrender.com/api/application/${id}`,
-        { action },
+        {
+          method: "PUT",
+
+          headers: {
+            "Content-Type": "application/json",
+          },
+
+          body: JSON.stringify({
+            action,
+          }),
+        },
       );
 
+      const data = await response.json().catch(() => ({}));
+
+      if (response.status === 401) {
+        await router.replace("/adminlogin");
+        return;
+      }
+
+      if (!response.ok) {
+        throw new Error(data.error || "APPLICATION_UPDATE_FAILED");
+      }
+
       const updateapplication = Applications.map((app: any) =>
-        app._id === id ? res.data.data : app,
+        app._id === id ? data.data : app,
       );
 
       setApplications(updateapplication);
 
       toast.success(t("application.updated"));
     } catch (error) {
-      console.log(error);
+      if (error instanceof AdminAuthenticatedFetchError) {
+        await router.replace("/adminlogin");
+        return;
+      }
+
+      console.error("Application update failed:", error);
 
       toast.error(t("application.updateFailed"));
     }

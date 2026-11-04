@@ -1,13 +1,21 @@
 import { useEffect, useState } from "react";
+
 import { useTranslation } from "react-i18next";
 
 import { auth } from "@/firebase/firebase";
+
 import { SUPPORTED_LANGUAGES, type SupportedLanguage } from "@/i18n/i18n";
+
+import { authenticatedFetch } from "@/utils/authenticatedFetch";
+import { getLoginSessionToken } from "@/utils/loginSession";
+
+const API_URL = "https://internshala-78tb.onrender.com";
 
 interface LanguageHistoryItem {
   _id: string;
 
   previousLanguage: SupportedLanguage;
+
   selectedLanguage: SupportedLanguage;
 
   verificationMethod: "standard" | "email-otp";
@@ -37,41 +45,41 @@ export default function LanguageHistory() {
   const { t, i18n } = useTranslation();
 
   const [history, setHistory] = useState<LanguageHistoryItem[]>([]);
+
   const [loading, setLoading] = useState(true);
 
   const [errorKey, setErrorKey] = useState("");
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (currentUser) => {
-      if (!currentUser) {
+      const loginSessionToken = getLoginSessionToken();
+
+      if (!currentUser || !loginSessionToken) {
         setHistory([]);
+
         setErrorKey("history.loginRequired");
+
         setLoading(false);
+
         return;
       }
 
       try {
         setLoading(true);
+
         setErrorKey("");
 
-        const idToken = await currentUser.getIdToken();
-
-        const response = await fetch(
-          "https://internshala-78tb.onrender.com/api/language/history",
-          {
-            headers: {
-              Authorization: `Bearer ${idToken}`,
-            },
-          },
+        const response = await authenticatedFetch(
+          `${API_URL}/api/language/history`,
         );
 
-        const data = await response.json();
+        const data = await response.json().catch(() => ({}));
 
         if (!response.ok) {
           throw new Error(data.error || "Failed to fetch language history");
         }
 
-        setHistory(data.history);
+        setHistory(data.history || []);
       } catch (error) {
         console.error("Language history fetch failed:", error);
 
@@ -149,7 +157,9 @@ export default function LanguageHistory() {
                 >
                   <td className="px-3 py-4 font-medium text-gray-900">
                     {SUPPORTED_LANGUAGES[item.previousLanguage]}
+
                     {" → "}
+
                     {SUPPORTED_LANGUAGES[item.selectedLanguage]}
                   </td>
 

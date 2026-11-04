@@ -4,40 +4,55 @@ import { auth } from "@/firebase/firebase";
 import { toast } from "react-toastify";
 import { SUPPORTED_LANGUAGES, SupportedLanguage } from "@/i18n/i18n";
 import { saveLanguagePreference } from "@/i18n/languageStorage";
+import { authenticatedFetch } from "@/utils/authenticatedFetch";
+import { getLoginSessionToken } from "@/utils/loginSession";
+
 import FrenchOtpModal from "./FrenchOtpModal";
+
+const API_URL = "https://internshala-78tb.onrender.com";
 
 export default function LanguageSelector() {
   const { t, i18n } = useTranslation();
+
   const [isFrenchOtpOpen, setIsFrenchOtpOpen] = useState(false);
+
+  const applyLanguageLocally = async (language: SupportedLanguage) => {
+    await i18n.changeLanguage(language);
+
+    saveLanguagePreference(language);
+
+    document.documentElement.lang = language;
+  };
 
   const handleLanguageChange = async (
     event: ChangeEvent<HTMLSelectElement>,
   ) => {
     const selectedLanguage = event.target.value as SupportedLanguage;
 
+    const currentUser = auth.currentUser;
+
+    const loginSessionToken = getLoginSessionToken();
+
     if (selectedLanguage === "fr") {
+      if (!currentUser || !loginSessionToken) {
+        toast.error(t("language.loginRequired"));
+
+        return;
+      }
+
       try {
-        const currentUser = auth.currentUser;
-
-        if (!currentUser) {
-          toast.error(t("language.loginRequired"));
-          return;
-        }
-
-        const idToken = await currentUser.getIdToken();
-
-        const response = await fetch(
-          "https://internshala-78tb.onrender.com/api/language/french/request-otp",
+        const response = await authenticatedFetch(
+          `${API_URL}/api/language/french/request-otp`,
           {
             method: "POST",
+
             headers: {
-              Authorization: `Bearer ${idToken}`,
               "Content-Type": "application/json",
             },
           },
         );
 
-        const data = await response.json();
+        const data = await response.json().catch(() => ({}));
 
         if (!response.ok) {
           if (data.error === "OTP_RESEND_TOO_SOON") {
@@ -46,10 +61,13 @@ export default function LanguageSelector() {
                 seconds: data.retryAfter,
               }),
             );
+
             return;
           }
+
           if (data.error === "OTP_REQUEST_LIMIT_REACHED") {
             toast.error(t("language.otpRequestLimit"));
+
             return;
           }
 
@@ -57,6 +75,7 @@ export default function LanguageSelector() {
         }
 
         toast.success(t("language.otpSent"));
+
         setIsFrenchOtpOpen(true);
       } catch (error) {
         console.error("French OTP request failed:", error);
@@ -67,61 +86,49 @@ export default function LanguageSelector() {
       return;
     }
 
-    try {
-      const currentUser = auth.currentUser;
+    if (currentUser && loginSessionToken) {
+      try {
+        const response = await authenticatedFetch(`${API_URL}/api/language`, {
+          method: "PUT",
 
-      if (currentUser) {
-        const idToken = await currentUser.getIdToken();
-
-        const response = await fetch(
-          "https://internshala-78tb.onrender.com/api/language",
-          {
-            method: "PUT",
-
-            headers: {
-              Authorization: `Bearer ${idToken}`,
-              "Content-Type": "application/json",
-            },
-
-            body: JSON.stringify({
-              language: selectedLanguage,
-            }),
+          headers: {
+            "Content-Type": "application/json",
           },
-        );
+
+          body: JSON.stringify({
+            language: selectedLanguage,
+          }),
+        });
+
+        const data = await response.json().catch(() => ({}));
 
         if (!response.ok) {
-          throw new Error("Language update failed");
+          throw new Error(data.error || "Language update failed");
         }
 
-        const data = await response.json();
+        await applyLanguageLocally(data.preferredLanguage);
 
-        await i18n.changeLanguage(data.preferredLanguage);
+        return;
+      } catch (error) {
+        console.error("Language change failed:", error);
 
-        saveLanguagePreference(data.preferredLanguage);
-
-        document.documentElement.lang = data.preferredLanguage;
+        toast.error(t("language.changeFailed"));
 
         return;
       }
+    }
 
-      await i18n.changeLanguage(selectedLanguage);
-
-      saveLanguagePreference(selectedLanguage);
-
-      document.documentElement.lang = selectedLanguage;
+    try {
+      await applyLanguageLocally(selectedLanguage);
     } catch (error) {
-      console.error("Language change failed:", error);
+      console.error("Local language change failed:", error);
 
       toast.error(t("language.changeFailed"));
     }
   };
 
   const handleFrenchVerified = async () => {
-    await i18n.changeLanguage("fr");
-
-    saveLanguagePreference("fr");
-
-    document.documentElement.lang = "fr";
+    await applyLanguageLocally("fr");
   };
 
   return (
@@ -138,6 +145,7 @@ export default function LanguageSelector() {
           </option>
         ))}
       </select>
+
       <FrenchOtpModal
         isOpen={isFrenchOtpOpen}
         onClose={() => setIsFrenchOtpOpen(false)}

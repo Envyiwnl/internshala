@@ -1,6 +1,6 @@
 import { SubmitEvent, useEffect, useState } from "react";
 import { Search, UserRound, UserRoundPlus } from "lucide-react";
-import { auth } from "@/firebase/firebase";
+import { authenticatedFetch } from "@/utils/authenticatedFetch";
 import { toast } from "react-toastify";
 import { useTranslation } from "react-i18next";
 
@@ -41,33 +41,17 @@ export default function SocialFriends() {
   const [friends, setFriends] = useState<Friend[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const getToken = async () => {
-    await auth.authStateReady();
-
-    const firebaseUser = auth.currentUser;
-
-    if (!firebaseUser) {
-      throw new Error("LOGIN_REQUIRED");
-    }
-
-    return firebaseUser.getIdToken();
-  };
-
   const loadUsers = async (searchValue = "") => {
     try {
       setLoading(true);
-
-      const idToken = await getToken();
 
       const query = searchValue.trim()
         ? `?search=${encodeURIComponent(searchValue.trim())}`
         : "";
 
-      const response = await fetch(`${API_URL}/api/social/users${query}`, {
-        headers: {
-          Authorization: `Bearer ${idToken}`,
-        },
-      });
+      const response = await authenticatedFetch(
+        `${API_URL}/api/social/users${query}`,
+      );
 
       const data = await response.json();
 
@@ -88,15 +72,8 @@ export default function SocialFriends() {
     try {
       setLoading(true);
 
-      const idToken = await getToken();
-
-      const response = await fetch(
+      const response = await authenticatedFetch(
         `${API_URL}/api/social/friend-requests?direction=incoming`,
-        {
-          headers: {
-            Authorization: `Bearer ${idToken}`,
-          },
-        },
       );
 
       const data = await response.json();
@@ -118,13 +95,9 @@ export default function SocialFriends() {
     try {
       setLoading(true);
 
-      const idToken = await getToken();
-
-      const response = await fetch(`${API_URL}/api/social/friends`, {
-        headers: {
-          Authorization: `Bearer ${idToken}`,
-        },
-      });
+      const response = await authenticatedFetch(
+        `${API_URL}/api/social/friends`,
+      );
 
       const data = await response.json();
 
@@ -168,15 +141,10 @@ export default function SocialFriends() {
 
   const sendFriendRequest = async (userId: string) => {
     try {
-      const idToken = await getToken();
-
-      const response = await fetch(
+      const response = await authenticatedFetch(
         `${API_URL}/api/social/friend-requests/${userId}`,
         {
           method: "POST",
-          headers: {
-            Authorization: `Bearer ${idToken}`,
-          },
         },
       );
 
@@ -218,15 +186,10 @@ export default function SocialFriends() {
 
   const acceptFriendRequest = async (requestId: string) => {
     try {
-      const idToken = await getToken();
-
-      const response = await fetch(
+      const response = await authenticatedFetch(
         `${API_URL}/api/social/friend-requests/${requestId}/accept`,
         {
           method: "POST",
-          headers: {
-            Authorization: `Bearer ${idToken}`,
-          },
         },
       );
 
@@ -249,15 +212,10 @@ export default function SocialFriends() {
 
   const rejectFriendRequest = async (requestId: string) => {
     try {
-      const idToken = await getToken();
-
-      const response = await fetch(
+      const response = await authenticatedFetch(
         `${API_URL}/api/social/friend-requests/${requestId}/reject`,
         {
           method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${idToken}`,
-          },
         },
       );
 

@@ -5,10 +5,11 @@ const User = require("../Model/User");
 const Notification = require("../Model/Notification");
 
 const verifyFirebaseToken = require("../middleware/verifyFirebaseToken");
+const verifyLoginSession = require("../middleware/verifyLoginSession");
 
 const router = express.Router();
 
-router.use(verifyFirebaseToken);
+router.use(verifyFirebaseToken, verifyLoginSession);
 
 const getCurrentUser = async (req) => {
   return User.findOne({

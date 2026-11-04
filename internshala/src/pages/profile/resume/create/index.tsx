@@ -10,10 +10,11 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { useEffect, useState } from "react";
+import { SubmitEvent, useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import { useTranslation } from "react-i18next";
 import { getAuth } from "firebase/auth";
+import { authenticatedFetch } from "@/utils/authenticatedFetch";
 import { selectuser } from "@/feature/userSlice";
 
 const API_URL = "https://internshala-78tb.onrender.com";
@@ -63,7 +64,7 @@ const index = () => {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     if (
@@ -87,16 +88,16 @@ const index = () => {
         return;
       }
 
-      const token = await firebaseUser.getIdToken();
-
-      const response = await fetch(`${API_URL}/api/resume/draft`, {
+      const response = await authenticatedFetch(`${API_URL}/api/resume/draft`, {
         method: "POST",
+
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
+
         body: JSON.stringify({
           title: formData.title.trim() || t("resumeBuilder.defaultResumeTitle"),
+
           content: {
             fullName: formData.fullName.trim(),
             email: formData.email.trim(),

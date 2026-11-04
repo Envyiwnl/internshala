@@ -462,7 +462,8 @@
     "analytics": "数据分析",
     "analyticsDescription": "查看详细报告和统计数据",
     "settings": "设置",
-    "settingsDescription": "配置系统偏好"
+    "settingsDescription": "配置系统偏好",
+    "logout": "退出登录"
   },
 
   "status": {
@@ -787,6 +788,22 @@
     "optional": "（可选）",
     "phonePlaceholder": "+8613800138000",
     "phoneHint": "如果您希望以后可以通过短信恢复密码，请填写包含国家代码的手机号码。",
+    "loginOtpTitle": "验证您的登录",
+    "loginOtpDescription": "请输入发送至 {{destination}} 的验证码。",
+    "loginOtpSecurityNotice": "通过 Google Chrome 登录时，必须先完成电子邮件 OTP 验证才能访问平台。",
+    "loginOtpLabel": "验证码",
+    "loginOtpPlaceholder": "000000",
+    "loginOtpExpires": "验证码将在以下时间后失效",
+    "loginOtpExpiredLabel": "已过期",
+    "loginOtpAttempts": "剩余尝试次数",
+    "verifyLoginOtp": "验证登录",
+    "verifyingLoginOtp": "正在验证...",
+    "resendLoginOtp": "重新发送验证码",
+    "resendLoginOtpIn": "{{seconds}} 秒后重新发送",
+    "loginOtpResendLimitReached": "已达到重新发送上限",
+    "loginOtpResendsRemaining": "还可重新发送 {{count}} 次",
+    "loginOtpResent": "新的登录验证码已发送。",
+    "backToCredentials": "返回登录",
     "errors": {
       "loginRequired": "请输入您的电子邮箱和密码。",
       "signupRequired": "请填写所有必填字段。",
@@ -805,7 +822,24 @@
       "profileSyncFailed": "您已登录，但无法同步个人资料，请重试。",
       "signupProfileSyncFailed": "您的帐户已创建，但无法同步个人资料，请重新登录。",
       "invalidPhone": "请输入包含国家代码的有效手机号码。",
-      "phoneAlreadyInUse": "此手机号码已绑定到其他账户。"
+      "phoneAlreadyInUse": "此手机号码已绑定到其他账户。",
+      "mobileLoginOutsideHours": "移动设备仅允许在印度标准时间上午 10:00 至下午 1:00 之间登录。",
+      "loginEmailUnavailable": "没有可用于登录验证的注册电子邮箱。",
+      "loginOtpDeliveryFailed": "无法发送登录验证码，请重试。",
+      "loginChallengeClosed": "此登录验证会话已关闭，请重新登录。",
+      "loginChallengeAlreadyUsed": "此登录验证已经完成。",
+      "loginChallengeExpired": "登录验证会话已过期，请重新登录。",
+      "invalidLoginOtpFormat": "请输入完整的 6 位验证码。",
+      "invalidLoginOtp": "验证码不正确。",
+      "invalidLoginOtpWithAttempts": "验证码错误，还剩 {{count}} 次尝试。",
+      "loginOtpExpired": "此验证码已过期，请申请新的验证码。",
+      "loginOtpAttemptsExceeded": "错误尝试次数过多，请重新登录。",
+      "loginOtpResendCooldown": "请稍候再申请新的验证码。",
+      "loginOtpResendLimit": "已达到验证码重新发送上限。",
+      "loginOtpResendFailed": "无法重新发送验证码，请重试。",
+      "loginOtpVerificationFailed": "无法验证登录验证码，请重试。",
+      "loginSecurityFailed": "无法完成登录安全检查，请重试。",
+      "loginVerificationNetworkError": "登录验证期间网络连接中断，请重试。"
     }
   },
   "forgotPassword": {
