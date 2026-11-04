@@ -14,6 +14,14 @@ const createResumePaymentOrder = async ({ amount = 5000, receipt }) => {
   });
 };
 
+const createSubscriptionPaymentOrder = async ({ amount, receipt }) => {
+  return razorpay.orders.create({
+    amount,
+    currency: "INR",
+    receipt,
+  });
+};
+
 const fetchRazorpayPayment = async (razorpayPaymentId) => {
   return razorpay.payments.fetch(razorpayPaymentId);
 };
@@ -55,4 +63,5 @@ module.exports = {
   fetchRazorpayPayment,
   fetchRazorpayOrder,
   fetchRazorpayOrderPayments,
+  createSubscriptionPaymentOrder,
 };

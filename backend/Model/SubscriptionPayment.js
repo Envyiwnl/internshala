@@ -121,6 +121,15 @@ SubscriptionPaymentSchema.index(
 
 SubscriptionPaymentSchema.index({ user: 1, createdAt: -1 });
 
+SubscriptionPaymentSchema.index(
+  { user: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { status: "created" },
+    name: "one_pending_subscription_order_per_user",
+  },
+);
+
 module.exports = mongoose.model(
   "SubscriptionPayment",
   SubscriptionPaymentSchema,

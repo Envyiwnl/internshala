@@ -14,6 +14,7 @@ const notification = require("./notification");
 const feed = require("./feed");
 const media = require("./media");
 const loginSecurity = require("./loginSecurity");
+const subscription = require("./subscription");
 
 router.use("/admin", admin);
 router.use("/internship", intern);
@@ -29,5 +30,6 @@ router.use("/posts", post);
 router.use("/notifications", notification);
 router.use("/feed", feed);
 router.use("/media", media);
+router.use("/subscription", subscription);
 
 module.exports = router;
