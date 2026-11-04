@@ -26,6 +26,10 @@ const {
 } = require("../services/subscriptionPaymentService");
 
 const {
+  generateSubscriptionInvoice,
+} = require("../services/subscriptionInvoiceService");
+
+const {
   isWithinSubscriptionPaymentWindow,
   getSubscriptionPaymentWindow,
   formatSubscriptionOrder,
@@ -77,6 +81,7 @@ const paymentErrorStatus = (code) => {
       "PAYMENT_AWAITING_CAPTURE",
       "PAYMENT_ALREADY_PROCESSED",
       "VERIFIED_PAYMENT_REQUIRED",
+      "PAYMENT_SUPERSEDED_BY_NEWER_PURCHASE",
     ].includes(code)
   )
     return 409;
@@ -352,6 +357,92 @@ router.post("/cancel-order", async (req, res) => {
     return res.status(200).json(result);
   } catch (error) {
     return respondPaymentError(res, error, "Subscription order cancellation");
+  }
+});
+
+router.get("/payments", async (req, res) => {
+  try {
+    const user = await User.findOne({
+      firebaseUid: req.firebaseUser.uid,
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: "USER_NOT_FOUND" });
+    }
+
+    const payments = await SubscriptionPayment.find({
+      user: user._id,
+    })
+      .select(
+        "plan action amount currency razorpayOrderId razorpayPaymentId " +
+          "status paidAt failedAt cancelledAt failureReason " +
+          "invoiceNumber subscriptionStart subscriptionEnd " +
+          "confirmationEmailSentAt testMode createdAt updatedAt",
+      )
+      .sort({ createdAt: -1 })
+      .lean();
+
+    return res.status(200).json({ payments });
+  } catch (error) {
+    console.error("Subscription payment history failed:", error);
+
+    return res.status(500).json({
+      error: "SUBSCRIPTION_PAYMENT_HISTORY_FAILED",
+    });
+  }
+});
+
+router.get("/payments/:paymentRecordId/invoice", async (req, res) => {
+  try {
+    const { paymentRecordId } = req.params;
+
+    if (!mongoose.isValidObjectId(paymentRecordId)) {
+      return res.status(400).json({
+        error: "INVALID_PAYMENT_RECORD_ID",
+      });
+    }
+
+    const user = await User.findOne({
+      firebaseUid: req.firebaseUser.uid,
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: "USER_NOT_FOUND" });
+    }
+
+    const payment = await SubscriptionPayment.findOne({
+      _id: paymentRecordId,
+      user: user._id,
+    }).lean();
+
+    if (!payment) {
+      return res.status(404).json({
+        error: "PAYMENT_RECORD_NOT_FOUND",
+      });
+    }
+
+    if (payment.status !== "paid" || !payment.invoiceNumber) {
+      return res.status(409).json({
+        error: "INVOICE_NOT_AVAILABLE",
+      });
+    }
+
+    const invoice = await generateSubscriptionInvoice(payment);
+
+    res.set({
+      "Content-Type": "application/pdf",
+      "Content-Disposition": `attachment; filename="${payment.invoiceNumber}.pdf"`,
+      "Content-Length": invoice.length,
+      "Cache-Control": "private, no-store",
+    });
+
+    return res.status(200).send(invoice);
+  } catch (error) {
+    console.error("Subscription invoice generation failed:", error);
+
+    return res.status(500).json({
+      error: "SUBSCRIPTION_INVOICE_GENERATION_FAILED",
+    });
   }
 });
 

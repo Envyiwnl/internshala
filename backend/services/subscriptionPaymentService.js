@@ -9,6 +9,10 @@ const {
 
 const { activatePaidSubscription } = require("./subscriptionService");
 
+const {
+  ensureSubscriptionConfirmation,
+} = require("./subscriptionEmailService");
+
 const getPaymentRecord = async (userId, paymentRecordId) => {
   const payment = await SubscriptionPayment.findOne({
     _id: paymentRecordId,
@@ -40,43 +44,53 @@ const validateGatewayPayment = (payment, gatewayPayment) => {
   }
 };
 
+const deliverConfirmation = async (paymentId) => {
+  try {
+    await ensureSubscriptionConfirmation(paymentId);
+  } catch (error) {
+    console.error("Subscription confirmation email failed:", error);
+  }
+};
+
 const settlePayment = async (payment, gatewayPayment) => {
   validateGatewayPayment(payment, gatewayPayment);
 
+  let result;
+
   try {
-    return await activatePaidSubscription({
+    result = await activatePaidSubscription({
       userId: payment.user,
       paymentId: payment._id,
       gatewayPayment,
     });
   } catch (error) {
-    if (
-      error.code !== 11000 &&
-      !["PAYMENT_ALREADY_PROCESSED"].includes(error.message)
-    ) {
+    if (error.code !== 11000 && error.message !== "PAYMENT_ALREADY_PROCESSED") {
       throw error;
     }
 
     const latest = await SubscriptionPayment.findById(payment._id);
 
     if (
-      latest?.status === "paid" &&
-      latest.razorpayPaymentId === gatewayPayment.id &&
-      latest.subscriptionStart &&
-      latest.subscriptionEnd
+      latest?.status !== "paid" ||
+      latest.razorpayPaymentId !== gatewayPayment.id ||
+      !latest.subscriptionStart ||
+      !latest.subscriptionEnd
     ) {
-      return {
-        alreadyActivated: true,
-        paymentRecordId: latest._id,
-        plan: latest.plan,
-        cycleStart: latest.subscriptionStart,
-        cycleEnd: latest.subscriptionEnd,
-        invoiceNumber: latest.invoiceNumber,
-      };
+      throw error;
     }
 
-    throw error;
+    result = {
+      alreadyActivated: true,
+      paymentRecordId: latest._id,
+      plan: latest.plan,
+      cycleStart: latest.subscriptionStart,
+      cycleEnd: latest.subscriptionEnd,
+      invoiceNumber: latest.invoiceNumber,
+    };
   }
+
+  await deliverConfirmation(payment._id);
+  return result;
 };
 
 const verifySubscriptionPayment = async ({
@@ -118,6 +132,8 @@ const inspectSubscriptionPayment = async ({ userId, paymentRecordId }) => {
   const payment = await getPaymentRecord(userId, paymentRecordId);
 
   if (payment.status === "paid") {
+    await deliverConfirmation(payment._id);
+
     return {
       status: "paid",
       paymentRecordId: payment._id,
@@ -150,7 +166,9 @@ const inspectSubscriptionPayment = async ({ userId, paymentRecordId }) => {
   );
 
   if (captured) {
-    const result = await settlePayment(payment, captured);
+    const verifiedPayment = await fetchRazorpayPayment(captured.id);
+    const result = await settlePayment(payment, verifiedPayment);
+
     return { status: "paid", ...result };
   }
 
@@ -214,10 +232,17 @@ const closeSubscriptionOrder = async ({ userId, paymentRecordId }) => {
     return { status: latest.status, paymentRecordId: latest._id };
   }
 
-  return {
-    status: updated.status,
-    paymentRecordId: updated._id,
-  };
+  const finalState = await inspectSubscriptionPayment({
+    userId,
+    paymentRecordId,
+  });
+
+  return finalState.status === "paid"
+    ? finalState
+    : {
+        status: updated.status,
+        paymentRecordId: updated._id,
+      };
 };
 
 module.exports = {

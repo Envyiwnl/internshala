@@ -101,6 +101,11 @@ const SubscriptionPaymentSchema = new mongoose.Schema(
       default: null,
     },
 
+    confirmationEmailSendingAt: {
+      type: Date,
+      default: null,
+    },
+
     testMode: {
       type: Boolean,
       default: true,

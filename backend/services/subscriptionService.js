@@ -269,6 +269,23 @@ const activatePaidSubscription = async ({
       throw new Error("PAYMENT_ALREADY_PROCESSED");
     }
 
+    const latestPaymentId = user.subscription?.lastPayment;
+
+    if (
+      latestPaymentId &&
+      latestPaymentId.toString() !== payment._id.toString()
+    ) {
+      const latestPayment =
+        await SubscriptionPayment.findById(latestPaymentId).session(session);
+
+      if (
+        latestPayment?.status === "paid" &&
+        latestPayment.createdAt > payment.createdAt
+      ) {
+        throw new Error("PAYMENT_SUPERSEDED_BY_NEWER_PURCHASE");
+      }
+    }
+
     await reconcileSubscription(user, now, session);
 
     const previousPlan = user.subscription.plan;
