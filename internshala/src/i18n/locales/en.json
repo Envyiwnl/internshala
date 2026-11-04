@@ -646,6 +646,37 @@
     "defaultUpdateFailed": "Unable to change the default resume. Please try again.",
     "viewHistory": "View History"
   },
+
+  "subscriptionProfile": {
+    "heading": "Internship subscription",
+    "refresh": "Refresh",
+    "used": "Applications used",
+    "limit": "Monthly application limit",
+    "cycleStart": "Cycle started",
+    "nextDate": "Next billing-cycle date",
+    "manage": "Manage subscription",
+    "history": "Subscription history",
+    "noHistory": "No subscription changes yet.",
+    "payments": "Payment history and invoices",
+    "noPayments": "No payments yet.",
+    "invoice": "Download invoice",
+    "downloading": "Downloading...",
+    "actions": {
+      "activated": "Activated",
+      "upgraded": "Upgraded",
+      "downgraded": "Downgraded",
+      "renewed": "Renewed",
+      "cancelled": "Cancelled",
+      "expired": "Expired"
+    },
+    "status": {
+      "created": "Pending",
+      "paid": "Paid",
+      "failed": "Failed",
+      "cancelled": "Cancelled"
+    }
+  },
+
   "resumeEditor": {
     "title": "Edit Resume",
     "description": "Complete your resume details and choose how your final resume will look.",

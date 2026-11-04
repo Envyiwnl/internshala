@@ -12,6 +12,7 @@ import { selectuser } from "@/feature/userSlice";
 import LanguageHistory from "@/Components/LanguageHistory";
 import LoginHistory from "@/Components/LoginHistory";
 import ActiveSessions from "@/Components/ActiveSessions";
+import SubscriptionProfile from "@/Components/SubscriptionProfile";
 import { useTranslation } from "react-i18next";
 
 const index = () => {
@@ -70,6 +71,8 @@ const index = () => {
                   </p>
                 </div>
               </div>
+
+              {user?.uid && <SubscriptionProfile userId={user.uid} />}
 
               <div className="border border-blue-100 bg-blue-50/50 rounded-xl p-5">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">

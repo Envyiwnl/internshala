@@ -584,6 +584,37 @@
     "resendOtpIn": "Reenviar código en {{seconds}}s",
     "otpRequestLimit": "Demasiadas solicitudes de códigos de verificación. Inténtalo de nuevo más tarde."
   },
+
+  "subscriptionProfile": {
+    "heading": "Suscripción de prácticas",
+    "refresh": "Actualizar",
+    "used": "Solicitudes utilizadas",
+    "limit": "Límite mensual de solicitudes",
+    "cycleStart": "Inicio del ciclo",
+    "nextDate": "Próxima fecha del ciclo de facturación",
+    "manage": "Gestionar suscripción",
+    "history": "Historial de suscripción",
+    "noHistory": "Aún no hay cambios de suscripción.",
+    "payments": "Historial de pagos y facturas",
+    "noPayments": "Aún no hay pagos.",
+    "invoice": "Descargar factura",
+    "downloading": "Descargando...",
+    "actions": {
+      "activated": "Activada",
+      "upgraded": "Mejorada",
+      "downgraded": "Reducida",
+      "renewed": "Renovada",
+      "cancelled": "Cancelada",
+      "expired": "Caducada"
+    },
+    "status": {
+      "created": "Pendiente",
+      "paid": "Pagado",
+      "failed": "Fallido",
+      "cancelled": "Cancelado"
+    }
+  },
+
   "resumeBuilder": {
     "backToProfile": "Volver al perfil",
     "title": "Creador de currículums",

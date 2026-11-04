@@ -593,6 +593,37 @@
     "resendOtpIn": "Renvoyer le code dans {{seconds}} s",
     "otpRequestLimit": "Trop de demandes de code de vérification. Veuillez réessayer plus tard."
   },
+
+  "subscriptionProfile": {
+    "heading": "Abonnement aux stages",
+    "refresh": "Actualiser",
+    "used": "Candidatures utilisées",
+    "limit": "Limite mensuelle de candidatures",
+    "cycleStart": "Début du cycle",
+    "nextDate": "Date du prochain cycle de facturation",
+    "manage": "Gérer l'abonnement",
+    "history": "Historique de l'abonnement",
+    "noHistory": "Aucun changement d'abonnement pour le moment.",
+    "payments": "Historique des paiements et factures",
+    "noPayments": "Aucun paiement pour le moment.",
+    "invoice": "Télécharger la facture",
+    "downloading": "Téléchargement...",
+    "actions": {
+      "activated": "Activé",
+      "upgraded": "Amélioré",
+      "downgraded": "Réduit",
+      "renewed": "Renouvelé",
+      "cancelled": "Résilié",
+      "expired": "Expiré"
+    },
+    "status": {
+      "created": "En attente",
+      "paid": "Payé",
+      "failed": "Échoué",
+      "cancelled": "Annulé"
+    }
+  },
+
   "resumeBuilder": {
     "backToProfile": "Retour au profil",
     "title": "Créateur de CV",

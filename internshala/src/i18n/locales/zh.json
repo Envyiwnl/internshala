@@ -517,43 +517,60 @@
     "rejected": "已拒绝"
   },
 
-
-"subscription": {
-  "title":"实习申请订阅套餐",
-  "description":"选择每月实习申请次数。",
-  "paymentHours":"仅可在印度标准时间上午 5:00 至 11:45 之间发起付款。",
-  "loginRequired":"请登录以管理订阅。",
-  "loading":"正在加载订阅...",
-  "plans":{"free":"免费","bronze":"青铜","silver":"白银","gold":"黄金"},
-  "plan":"套餐","perMonth":"/月","currentPlan":"当前套餐",
-  "remaining":"剩余申请次数","cycleEnd":"当前周期结束日期",
-  "unlimited":"无限次申请",
-  "applicationLimit_one":"每月可申请 {{count}} 次实习",
-  "applicationLimit_other":"每月可申请 {{count}} 次实习",
-  "purchase":"购买","upgrade":"升级","downgrade":"降级","renew":"续订",
-  "freeDefault":"默认免费套餐",
-  "billingDetails":"账单信息",
-  "billing":{"name":"全名","address":"地址","city":"城市","state":"邦或省","postalCode":"邮政编码","country":"国家"},
-  "paymentSuccessful":"付款已验证，订阅已激活。",
-  "paymentPending":"付款仍在处理中，请先检查状态。",
-  "paymentFailed":"付款失败。您可以检查或关闭待处理订单。",
-  "checkoutClosed":"支付窗口已关闭，可检查订单状态。",
-  "pendingOrder":"待处理付款订单",
-  "pendingExplanation":"请先处理此订单，再发起其他订阅付款。",
-  "checkPayment":"检查付款","closeOrder":"关闭待处理订单",
-  "orderResolved":"待处理订单已处理。",
-  "cancelSubscription":"取消订阅",
-  "confirmCancel":"确定在当前计费周期结束时取消订阅吗？",
-  "cancellationScheduled":"订阅将在当前计费周期结束时取消。",
-  "backToProfile":"返回个人资料",
-  "errors":{
-    "SUBSCRIPTION_PAYMENT_OUTSIDE_ALLOWED_HOURS":"仅可在印度标准时间上午 5:00 至 11:45 之间发起付款。",
-    "ANOTHER_SUBSCRIPTION_ORDER_PENDING":"选择其他套餐前，请先处理当前付款。",
-    "PAYMENT_SUPERSEDED_BY_NEWER_PURCHASE":"较新的订阅已激活。",
-    "RAZORPAY_SCRIPT_FAILED":"无法加载支付窗口。"
-  }
-},
-
+  "subscription": {
+    "title": "实习申请订阅套餐",
+    "description": "选择每月实习申请次数。",
+    "paymentHours": "仅可在印度标准时间上午 5:00 至 11:45 之间发起付款。",
+    "loginRequired": "请登录以管理订阅。",
+    "loading": "正在加载订阅...",
+    "plans": {
+      "free": "免费",
+      "bronze": "青铜",
+      "silver": "白银",
+      "gold": "黄金"
+    },
+    "plan": "套餐",
+    "perMonth": "/月",
+    "currentPlan": "当前套餐",
+    "remaining": "剩余申请次数",
+    "cycleEnd": "当前周期结束日期",
+    "unlimited": "无限次申请",
+    "applicationLimit_one": "每月可申请 {{count}} 次实习",
+    "applicationLimit_other": "每月可申请 {{count}} 次实习",
+    "purchase": "购买",
+    "upgrade": "升级",
+    "downgrade": "降级",
+    "renew": "续订",
+    "freeDefault": "默认免费套餐",
+    "billingDetails": "账单信息",
+    "billing": {
+      "name": "全名",
+      "address": "地址",
+      "city": "城市",
+      "state": "邦或省",
+      "postalCode": "邮政编码",
+      "country": "国家"
+    },
+    "paymentSuccessful": "付款已验证，订阅已激活。",
+    "paymentPending": "付款仍在处理中，请先检查状态。",
+    "paymentFailed": "付款失败。您可以检查或关闭待处理订单。",
+    "checkoutClosed": "支付窗口已关闭，可检查订单状态。",
+    "pendingOrder": "待处理付款订单",
+    "pendingExplanation": "请先处理此订单，再发起其他订阅付款。",
+    "checkPayment": "检查付款",
+    "closeOrder": "关闭待处理订单",
+    "orderResolved": "待处理订单已处理。",
+    "cancelSubscription": "取消订阅",
+    "confirmCancel": "确定在当前计费周期结束时取消订阅吗？",
+    "cancellationScheduled": "订阅将在当前计费周期结束时取消。",
+    "backToProfile": "返回个人资料",
+    "errors": {
+      "SUBSCRIPTION_PAYMENT_OUTSIDE_ALLOWED_HOURS": "仅可在印度标准时间上午 5:00 至 11:45 之间发起付款。",
+      "ANOTHER_SUBSCRIPTION_ORDER_PENDING": "选择其他套餐前，请先处理当前付款。",
+      "PAYMENT_SUPERSEDED_BY_NEWER_PURCHASE": "较新的订阅已激活。",
+      "RAZORPAY_SCRIPT_FAILED": "无法加载支付窗口。"
+    }
+  },
 
   "language": {
     "selectLanguage": "选择语言",
@@ -578,6 +595,37 @@
     "resendOtpIn": "{{seconds}} 秒后重新发送",
     "otpRequestLimit": "验证码请求次数过多。请稍后再试。"
   },
+
+  "subscriptionProfile": {
+    "heading": "实习申请订阅",
+    "refresh": "刷新",
+    "used": "已使用申请次数",
+    "limit": "每月申请上限",
+    "cycleStart": "周期开始日期",
+    "nextDate": "下一个计费周期日期",
+    "manage": "管理订阅",
+    "history": "订阅历史",
+    "noHistory": "暂无订阅变更。",
+    "payments": "付款历史和发票",
+    "noPayments": "暂无付款记录。",
+    "invoice": "下载发票",
+    "downloading": "正在下载...",
+    "actions": {
+      "activated": "已激活",
+      "upgraded": "已升级",
+      "downgraded": "已降级",
+      "renewed": "已续订",
+      "cancelled": "已取消",
+      "expired": "已过期"
+    },
+    "status": {
+      "created": "待处理",
+      "paid": "已付款",
+      "failed": "失败",
+      "cancelled": "已取消"
+    }
+  },
+
   "resumeBuilder": {
     "backToProfile": "返回个人资料",
     "title": "简历生成器",

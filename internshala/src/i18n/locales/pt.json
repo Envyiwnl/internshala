@@ -594,6 +594,37 @@
     "resendOtpIn": "Reenviar código em {{seconds}}s",
     "otpRequestLimit": "Muitas solicitações de código de verificação. Tente novamente mais tarde."
   },
+
+  "subscriptionProfile": {
+    "heading": "Assinatura de estágios",
+    "refresh": "Atualizar",
+    "used": "Candidaturas utilizadas",
+    "limit": "Limite mensal de candidaturas",
+    "cycleStart": "Início do ciclo",
+    "nextDate": "Próxima data do ciclo de faturamento",
+    "manage": "Gerenciar assinatura",
+    "history": "Histórico da assinatura",
+    "noHistory": "Ainda não há alterações de assinatura.",
+    "payments": "Histórico de pagamentos e faturas",
+    "noPayments": "Ainda não há pagamentos.",
+    "invoice": "Baixar fatura",
+    "downloading": "Baixando...",
+    "actions": {
+      "activated": "Ativada",
+      "upgraded": "Atualizada",
+      "downgraded": "Reduzida",
+      "renewed": "Renovada",
+      "cancelled": "Cancelada",
+      "expired": "Expirada"
+    },
+    "status": {
+      "created": "Pendente",
+      "paid": "Pago",
+      "failed": "Falhou",
+      "cancelled": "Cancelado"
+    }
+  },
+
   "resumeBuilder": {
     "backToProfile": "Voltar ao perfil",
     "title": "Criador de currículo",
