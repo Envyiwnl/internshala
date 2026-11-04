@@ -67,6 +67,59 @@ const UserSchema = new mongoose.Schema(
       default: false,
     },
 
+    subscription: {
+      plan: {
+        type: String,
+        enum: ["free", "bronze", "silver", "gold"],
+        default: "free",
+      },
+
+      status: {
+        type: String,
+        enum: ["active", "cancelled", "expired"],
+        default: "active",
+      },
+
+      applicationLimit: {
+        type: Number,
+        default: 1,
+        min: 0,
+      },
+
+      applicationsUsed: {
+        type: Number,
+        default: 0,
+        min: 0,
+      },
+
+      cycleStart: {
+        type: Date,
+        default: null,
+      },
+
+      cycleEnd: {
+        type: Date,
+        default: null,
+      },
+
+      cancelAtPeriodEnd: {
+        type: Boolean,
+        default: false,
+      },
+
+      scheduledPlan: {
+        type: String,
+        enum: ["free", "bronze", "silver", "gold"],
+        default: null,
+      },
+
+      lastPayment: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "SubscriptionPayment",
+        default: null,
+      },
+    },
+
     resumes: [
       {
         type: mongoose.Schema.Types.ObjectId,
