@@ -13,7 +13,12 @@ const {
   getSubscriptionPlan,
 } = require("../config/subscriptionPlans");
 
-const { getCurrentSubscription } = require("../services/subscriptionService");
+const {
+  getCurrentSubscription,
+  cancelSubscription,
+} = require("../services/subscriptionService");
+
+const SubscriptionHistory = require("../Model/SubscriptionHistory");
 
 const {
   createSubscriptionPaymentOrder,
@@ -46,6 +51,99 @@ router.get("/plans", (req, res) => {
 });
 
 router.use(verifyFirebaseToken, verifyLoginSession);
+
+router.get("/me", async (req, res) => {
+  try {
+    const user = await User.findOne({
+      firebaseUid: req.firebaseUser.uid,
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        error: "USER_NOT_FOUND",
+      });
+    }
+
+    const subscription = await getCurrentSubscription(user._id);
+
+    return res.status(200).json({
+      subscription,
+    });
+  } catch (error) {
+    console.error("Subscription fetch failed:", error);
+
+    return res.status(500).json({
+      error: "SUBSCRIPTION_FETCH_FAILED",
+    });
+  }
+});
+
+router.post("/cancel", async (req, res) => {
+  try {
+    const user = await User.findOne({
+      firebaseUid: req.firebaseUser.uid,
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        error: "USER_NOT_FOUND",
+      });
+    }
+
+    const result = await cancelSubscription(user._id);
+
+    return res.status(200).json({
+      message: result.alreadyCancelled
+        ? "SUBSCRIPTION_ALREADY_CANCELLED"
+        : "SUBSCRIPTION_CANCELLATION_SCHEDULED",
+      ...result,
+    });
+  } catch (error) {
+    if (error.message === "FREE_PLAN_CANNOT_BE_CANCELLED") {
+      return res.status(409).json({
+        error: error.message,
+      });
+    }
+
+    console.error("Subscription cancellation failed:", error);
+
+    return res.status(500).json({
+      error: "SUBSCRIPTION_CANCELLATION_FAILED",
+    });
+  }
+});
+
+router.get("/history", async (req, res) => {
+  try {
+    const user = await User.findOne({
+      firebaseUid: req.firebaseUser.uid,
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        error: "USER_NOT_FOUND",
+      });
+    }
+
+    const history = await SubscriptionHistory.find({
+      user: user._id,
+    })
+      .select(
+        "action previousPlan newPlan subscriptionStart " +
+          "subscriptionEnd payment reason createdAt",
+      )
+      .sort({ createdAt: -1 })
+      .lean();
+
+    return res.status(200).json({ history });
+  } catch (error) {
+    console.error("Subscription history fetch failed:", error);
+
+    return res.status(500).json({
+      error: "SUBSCRIPTION_HISTORY_FETCH_FAILED",
+    });
+  }
+});
 
 const normalizeBillingDetails = (details, user) => {
   const value = (input, fallback = "") =>
