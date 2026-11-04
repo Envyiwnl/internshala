@@ -514,6 +514,62 @@
     "accepted": "Acceptée",
     "rejected": "Rejetée"
   },
+
+  "subscription": {
+    "title": "Abonnements pour candidatures aux stages",
+    "description": "Choisissez votre limite mensuelle de candidatures.",
+    "paymentHours": "Les paiements ne peuvent être initiés qu'entre 5 h et 11 h 45 IST.",
+    "loginRequired": "Connectez-vous pour gérer votre abonnement.",
+    "loading": "Chargement de l'abonnement...",
+    "plans": {
+      "free": "Gratuit",
+      "bronze": "Bronze",
+      "silver": "Argent",
+      "gold": "Or"
+    },
+    "plan": "Forfait",
+    "perMonth": "/mois",
+    "currentPlan": "Forfait actuel",
+    "remaining": "Candidatures restantes",
+    "cycleEnd": "Fin du cycle actuel",
+    "unlimited": "Candidatures illimitées",
+    "applicationLimit_one": "{{count}} candidature de stage par mois",
+    "applicationLimit_other": "{{count}} candidatures de stage par mois",
+    "purchase": "Acheter",
+    "upgrade": "Passer au forfait supérieur",
+    "downgrade": "Passer au forfait inférieur",
+    "renew": "Renouveler",
+    "freeDefault": "Forfait gratuit par défaut",
+    "billingDetails": "Coordonnées de facturation",
+    "billing": {
+      "name": "Nom complet",
+      "address": "Adresse",
+      "city": "Ville",
+      "state": "État ou région",
+      "postalCode": "Code postal",
+      "country": "Pays"
+    },
+    "paymentSuccessful": "Paiement vérifié. Votre abonnement est actif.",
+    "paymentPending": "Paiement en attente. Vérifiez son statut avant de réessayer.",
+    "paymentFailed": "Le paiement a échoué. Vérifiez ou fermez la commande en attente.",
+    "checkoutClosed": "Fenêtre de paiement fermée. Vous pouvez vérifier la commande.",
+    "pendingOrder": "Commande de paiement en attente",
+    "pendingExplanation": "Résolvez cette commande avant d'effectuer un autre paiement.",
+    "checkPayment": "Vérifier le paiement",
+    "closeOrder": "Fermer la commande en attente",
+    "orderResolved": "Commande en attente résolue.",
+    "cancelSubscription": "Résilier l'abonnement",
+    "confirmCancel": "Résilier votre abonnement à la fin du cycle actuel ?",
+    "cancellationScheduled": "Résiliation prévue à la fin du cycle actuel.",
+    "backToProfile": "Retour au profil",
+    "errors": {
+      "SUBSCRIPTION_PAYMENT_OUTSIDE_ALLOWED_HOURS": "Le paiement ne peut commencer qu'entre 5 h et 11 h 45 IST.",
+      "ANOTHER_SUBSCRIPTION_ORDER_PENDING": "Résolvez le paiement actuel avant de choisir un autre forfait.",
+      "PAYMENT_SUPERSEDED_BY_NEWER_PURCHASE": "Un abonnement plus récent est déjà actif.",
+      "RAZORPAY_SCRIPT_FAILED": "Impossible de charger la fenêtre de paiement."
+    }
+  },
+
   "language": {
     "selectLanguage": "Choisir la langue",
     "frenchVerificationRequired": "Une vérification par e-mail est requise pour passer au français.",

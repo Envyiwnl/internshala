@@ -516,6 +516,61 @@
     "rejected": "Rejeitada"
   },
 
+  "subscription": {
+    "title": "Planos de assinatura para estágios",
+    "description": "Escolha seu limite mensal de candidaturas a estágios.",
+    "paymentHours": "Os pagamentos só podem ser iniciados entre 5h e 11h45 IST.",
+    "loginRequired": "Entre na sua conta para gerenciar sua assinatura.",
+    "loading": "Carregando assinatura...",
+    "plans": {
+      "free": "Grátis",
+      "bronze": "Bronze",
+      "silver": "Prata",
+      "gold": "Ouro"
+    },
+    "plan": "Plano",
+    "perMonth": "/mês",
+    "currentPlan": "Plano atual",
+    "remaining": "Candidaturas restantes",
+    "cycleEnd": "Fim do ciclo atual",
+    "unlimited": "Candidaturas ilimitadas",
+    "applicationLimit_one": "{{count}} candidatura a estágio por mês",
+    "applicationLimit_other": "{{count}} candidaturas a estágios por mês",
+    "purchase": "Comprar",
+    "upgrade": "Melhorar plano",
+    "downgrade": "Reduzir plano",
+    "renew": "Renovar",
+    "freeDefault": "Plano gratuito padrão",
+    "billingDetails": "Dados de faturamento",
+    "billing": {
+      "name": "Nome completo",
+      "address": "Endereço",
+      "city": "Cidade",
+      "state": "Estado",
+      "postalCode": "Código postal",
+      "country": "País"
+    },
+    "paymentSuccessful": "Pagamento verificado. Sua assinatura está ativa.",
+    "paymentPending": "O pagamento está pendente. Verifique antes de tentar novamente.",
+    "paymentFailed": "O pagamento falhou. Verifique ou feche o pedido pendente.",
+    "checkoutClosed": "Checkout fechado. Você pode verificar o pedido.",
+    "pendingOrder": "Pedido de pagamento pendente",
+    "pendingExplanation": "Resolva este pedido antes de iniciar outro pagamento.",
+    "checkPayment": "Verificar pagamento",
+    "closeOrder": "Fechar pedido pendente",
+    "orderResolved": "Pedido pendente resolvido.",
+    "cancelSubscription": "Cancelar assinatura",
+    "confirmCancel": "Cancelar a assinatura ao fim do ciclo atual?",
+    "cancellationScheduled": "Cancelamento programado para o fim do ciclo atual.",
+    "backToProfile": "Voltar ao perfil",
+    "errors": {
+      "SUBSCRIPTION_PAYMENT_OUTSIDE_ALLOWED_HOURS": "O pagamento só pode começar entre 5h e 11h45 IST.",
+      "ANOTHER_SUBSCRIPTION_ORDER_PENDING": "Resolva o pagamento atual antes de escolher outro plano.",
+      "PAYMENT_SUPERSEDED_BY_NEWER_PURCHASE": "Uma assinatura mais recente já está ativa.",
+      "RAZORPAY_SCRIPT_FAILED": "Não foi possível carregar o checkout."
+    }
+  },
+
   "language": {
     "selectLanguage": "Selecionar idioma",
     "frenchVerificationRequired": "A verificação por e-mail é necessária para mudar para francês.",

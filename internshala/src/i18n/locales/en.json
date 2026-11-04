@@ -515,6 +515,61 @@
     "rejected": "Rejected"
   },
 
+  "subscription": {
+    "title": "Internship Subscription Plans",
+    "description": "Choose your monthly internship application limit.",
+    "paymentHours": "Payments can be initiated only between 5:00 AM and 11:45 AM IST.",
+    "loginRequired": "Log in to manage your subscription.",
+    "loading": "Loading subscription...",
+    "plans": {
+      "free": "Free",
+      "bronze": "Bronze",
+      "silver": "Silver",
+      "gold": "Gold"
+    },
+    "plan": "Plan",
+    "perMonth": "/month",
+    "currentPlan": "Current plan",
+    "remaining": "Remaining applications",
+    "cycleEnd": "Current cycle ends",
+    "unlimited": "Unlimited applications",
+    "applicationLimit_one": "{{count}} internship application per month",
+    "applicationLimit_other": "{{count}} internship applications per month",
+    "purchase": "Purchase",
+    "upgrade": "Upgrade",
+    "downgrade": "Downgrade",
+    "renew": "Renew",
+    "freeDefault": "Default free plan",
+    "billingDetails": "Billing details",
+    "billing": {
+      "name": "Full name",
+      "address": "Address",
+      "city": "City",
+      "state": "State",
+      "postalCode": "Postal code",
+      "country": "Country"
+    },
+    "paymentSuccessful": "Payment verified. Your subscription is active.",
+    "paymentPending": "Payment is still pending. Check its status before trying again.",
+    "paymentFailed": "Payment failed. You can check or close the pending order.",
+    "checkoutClosed": "Checkout closed. You can check the order status.",
+    "pendingOrder": "Pending payment order",
+    "pendingExplanation": "Resolve this order before starting a different subscription payment.",
+    "checkPayment": "Check payment",
+    "closeOrder": "Close pending order",
+    "orderResolved": "Pending order resolved.",
+    "cancelSubscription": "Cancel subscription",
+    "confirmCancel": "Cancel your subscription at the end of the current billing cycle?",
+    "cancellationScheduled": "Cancellation scheduled for the end of this billing cycle.",
+    "backToProfile": "Back to profile",
+    "errors": {
+      "SUBSCRIPTION_PAYMENT_OUTSIDE_ALLOWED_HOURS": "Payment can only begin between 5:00 AM and 11:45 AM IST.",
+      "ANOTHER_SUBSCRIPTION_ORDER_PENDING": "Resolve your current payment before choosing another plan.",
+      "PAYMENT_SUPERSEDED_BY_NEWER_PURCHASE": "A newer subscription purchase is already active.",
+      "RAZORPAY_SCRIPT_FAILED": "Payment checkout could not be loaded."
+    }
+  },
+
   "language": {
     "selectLanguage": "Select language",
     "frenchVerificationRequired": "Email verification is required to switch to French.",

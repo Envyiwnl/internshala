@@ -516,6 +516,61 @@
     "rejected": "अस्वीकृत"
   },
 
+  "subscription": {
+    "title": "इंटर्नशिप सदस्यता प्लान",
+    "description": "हर महीने इंटर्नशिप आवेदन की सीमा चुनें।",
+    "paymentHours": "भुगतान केवल सुबह 5:00 से 11:45 बजे IST के बीच शुरू किया जा सकता है।",
+    "loginRequired": "सदस्यता प्रबंधित करने के लिए लॉग इन करें।",
+    "loading": "सदस्यता लोड हो रही है...",
+    "plans": {
+      "free": "फ्री",
+      "bronze": "ब्रॉन्ज",
+      "silver": "सिल्वर",
+      "gold": "गोल्ड"
+    },
+    "plan": "प्लान",
+    "perMonth": "/माह",
+    "currentPlan": "मौजूदा प्लान",
+    "remaining": "शेष आवेदन",
+    "cycleEnd": "वर्तमान अवधि समाप्त होगी",
+    "unlimited": "असीमित आवेदन",
+    "applicationLimit_one": "हर महीने {{count}} इंटर्नशिप आवेदन",
+    "applicationLimit_other": "हर महीने {{count}} इंटर्नशिप आवेदन",
+    "purchase": "खरीदें",
+    "upgrade": "अपग्रेड करें",
+    "downgrade": "कम प्लान चुनें",
+    "renew": "नवीनीकरण करें",
+    "freeDefault": "डिफ़ॉल्ट फ्री प्लान",
+    "billingDetails": "बिलिंग विवरण",
+    "billing": {
+      "name": "पूरा नाम",
+      "address": "पता",
+      "city": "शहर",
+      "state": "राज्य",
+      "postalCode": "पिन कोड",
+      "country": "देश"
+    },
+    "paymentSuccessful": "भुगतान सत्यापित हो गया। आपकी सदस्यता सक्रिय है।",
+    "paymentPending": "भुगतान लंबित है। दोबारा प्रयास करने से पहले स्थिति जांचें।",
+    "paymentFailed": "भुगतान विफल रहा। लंबित ऑर्डर जांचें या बंद करें।",
+    "checkoutClosed": "भुगतान विंडो बंद हो गई। ऑर्डर की स्थिति जांच सकते हैं।",
+    "pendingOrder": "लंबित भुगतान ऑर्डर",
+    "pendingExplanation": "दूसरा भुगतान शुरू करने से पहले इस ऑर्डर का समाधान करें।",
+    "checkPayment": "भुगतान जांचें",
+    "closeOrder": "लंबित ऑर्डर बंद करें",
+    "orderResolved": "लंबित ऑर्डर का समाधान हो गया।",
+    "cancelSubscription": "सदस्यता रद्द करें",
+    "confirmCancel": "वर्तमान बिलिंग अवधि के अंत में सदस्यता रद्द करें?",
+    "cancellationScheduled": "वर्तमान बिलिंग अवधि के अंत में सदस्यता रद्द होगी।",
+    "backToProfile": "प्रोफ़ाइल पर वापस जाएं",
+    "errors": {
+      "SUBSCRIPTION_PAYMENT_OUTSIDE_ALLOWED_HOURS": "भुगतान केवल सुबह 5:00 से 11:45 बजे IST के बीच शुरू हो सकता है।",
+      "ANOTHER_SUBSCRIPTION_ORDER_PENDING": "दूसरा प्लान चुनने से पहले मौजूदा भुगतान का समाधान करें।",
+      "PAYMENT_SUPERSEDED_BY_NEWER_PURCHASE": "नई खरीदी गई सदस्यता पहले से सक्रिय है।",
+      "RAZORPAY_SCRIPT_FAILED": "भुगतान विंडो लोड नहीं हो सकी।"
+    }
+  },
+
   "language": {
     "selectLanguage": "भाषा चुनें",
     "frenchVerificationRequired": "फ़्रेंच भाषा में बदलने के लिए ईमेल सत्यापन आवश्यक है।",
