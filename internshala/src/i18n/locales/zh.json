@@ -359,7 +359,18 @@
     "yourAvailability": "你的可入职时间",
     "submitApplication": "提交申请",
     "signUpToApply": "注册后申请",
-    "whySelectedJob": "为什么你应该被选中获得这个职位？"
+    "whySelectedJob": "为什么你应该被选中获得这个职位？",
+    "quotaExhausted": "您已达到本月的实习申请次数上限。请升级订阅套餐以申请更多实习机会。"
+  },
+
+  "searchPage": {
+    "title": "搜索机会",
+    "loading": "正在搜索机会...",
+    "results_one": "“{{query}}”的搜索结果：{{count}} 条",
+    "results_other": "“{{query}}”的搜索结果：{{count}} 条",
+    "noResults": "未找到匹配的职位或实习机会。",
+    "enterQuery": "输入职位、技能、公司或地点进行搜索。",
+    "error": "无法加载搜索结果，请重试。"
   },
 
   "form": {

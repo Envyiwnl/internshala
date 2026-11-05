@@ -358,7 +358,18 @@
     "yourAvailability": "Your Availability",
     "submitApplication": "Submit Application",
     "signUpToApply": "Sign up to apply",
-    "whySelectedJob": "Why should you be selected for this job?"
+    "whySelectedJob": "Why should you be selected for this job?",
+    "quotaExhausted": "You have reached your monthly internship application limit. Upgrade your subscription to apply for more internships."
+  },
+
+  "searchPage": {
+    "title": "Search opportunities",
+    "loading": "Searching opportunities...",
+    "results_one": "{{count}} result for \"{{query}}\"",
+    "results_other": "{{count}} results for \"{{query}}\"",
+    "noResults": "No matching jobs or internships found.",
+    "enterQuery": "Enter a job title, skill, company, or location to search.",
+    "error": "Unable to load search results. Please try again."
   },
 
   "form": {

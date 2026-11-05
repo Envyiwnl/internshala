@@ -359,7 +359,18 @@
     "yourAvailability": "Sua disponibilidade",
     "submitApplication": "Enviar candidatura",
     "signUpToApply": "Cadastre-se para se candidatar",
-    "whySelectedJob": "Por que você deveria ser selecionado para esta vaga?"
+    "whySelectedJob": "Por que você deveria ser selecionado para esta vaga?",
+    "quotaExhausted": "Você atingiu seu limite mensal de candidaturas a estágios. Melhore sua assinatura para se candidatar a mais estágios."
+  },
+
+  "searchPage": {
+    "title": "Pesquisar oportunidades",
+    "loading": "Pesquisando oportunidades...",
+    "results_one": "{{count}} resultado para \"{{query}}\"",
+    "results_other": "{{count}} resultados para \"{{query}}\"",
+    "noResults": "Nenhuma vaga ou estágio correspondente encontrado.",
+    "enterQuery": "Digite um cargo, habilidade, empresa ou local.",
+    "error": "Não foi possível carregar os resultados. Tente novamente."
   },
 
   "form": {

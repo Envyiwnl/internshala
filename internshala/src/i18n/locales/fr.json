@@ -358,7 +358,18 @@
     "yourAvailability": "Votre disponibilité",
     "submitApplication": "Envoyer la candidature",
     "signUpToApply": "Inscrivez-vous pour postuler",
-    "whySelectedJob": "Pourquoi devriez-vous être sélectionné pour cet emploi ?"
+    "whySelectedJob": "Pourquoi devriez-vous être sélectionné pour cet emploi ?",
+    "quotaExhausted": "Vous avez atteint votre limite mensuelle de candidatures aux stages. Passez à un abonnement supérieur pour postuler à davantage de stages."
+  },
+
+  "searchPage": {
+    "title": "Rechercher des opportunités",
+    "loading": "Recherche d'opportunités...",
+    "results_one": "{{count}} résultat pour « {{query}} »",
+    "results_other": "{{count}} résultats pour « {{query}} »",
+    "noResults": "Aucun emploi ni stage correspondant trouvé.",
+    "enterQuery": "Saisissez un poste, une compétence, une entreprise ou un lieu.",
+    "error": "Impossible de charger les résultats. Veuillez réessayer."
   },
 
   "form": {

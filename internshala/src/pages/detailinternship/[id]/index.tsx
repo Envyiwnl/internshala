@@ -114,6 +114,14 @@ function index() {
     } catch (error) {
       console.error(error);
 
+      if (
+        error instanceof Error &&
+        error.message === "APPLICATION_QUOTA_EXHAUSTED"
+      ) {
+        toast.error(t("application.quotaExhausted"));
+        return;
+      }
+
       toast.error(t("application.submitFailed"));
     }
   };

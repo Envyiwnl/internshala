@@ -300,8 +300,20 @@
     "yourAvailability": "Tu disponibilidad",
     "submitApplication": "Enviar solicitud",
     "signUpToApply": "Regístrate para postularte",
-    "whySelectedJob": "¿Por qué deberías ser seleccionado para este empleo?"
+    "whySelectedJob": "¿Por qué deberías ser seleccionado para este empleo?",
+    "quotaExhausted": "Has alcanzado tu límite mensual de solicitudes de prácticas. Mejora tu suscripción para solicitar más prácticas."
   },
+
+  "searchPage": {
+    "title": "Buscar oportunidades",
+    "loading": "Buscando oportunidades...",
+    "results_one": "{{count}} resultado para \"{{query}}\"",
+    "results_other": "{{count}} resultados para \"{{query}}\"",
+    "noResults": "No se encontraron empleos ni prácticas que coincidan.",
+    "enterQuery": "Introduce un puesto, habilidad, empresa o ubicación.",
+    "error": "No se pudieron cargar los resultados. Inténtalo de nuevo."
+  },
+
   "profile": {
     "activeApplications": "Solicitudes activas",
     "acceptedApplications": "Solicitudes aceptadas",

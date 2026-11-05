@@ -1,6 +1,8 @@
 import Link from "next/link";
 import LanguageSelector from "./LanguageSelector";
 import { Search, User, UsersRound } from "lucide-react";
+import { useRouter } from "next/router";
+import { useEffect, useState, type FormEvent } from "react";
 import { auth } from "../firebase/firebase";
 import { signOut } from "firebase/auth";
 import { authenticatedFetch } from "@/utils/authenticatedFetch";
@@ -12,6 +14,29 @@ import { useTranslation } from "react-i18next";
 export const Navbar = () => {
   const user = useSelector(selectuser);
   const { t } = useTranslation();
+
+  const router = useRouter();
+  const [search, setSearch] = useState("");
+
+  useEffect(() => {
+    if (!router.isReady) return;
+
+    if (router.pathname === "/search") {
+      setSearch(typeof router.query.q === "string" ? router.query.q : "");
+    }
+  }, [router.isReady, router.pathname, router.query.q]);
+
+  const handleSearch = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    const query = search.trim();
+    if (!query) return;
+
+    void router.push({
+      pathname: "/search",
+      query: { q: query },
+    });
+  };
 
   const handleLogout = async () => {
     try {
@@ -63,15 +88,29 @@ export const Navbar = () => {
                 {t("navbar.jobs")}
               </Link>
 
-              <div className="flex items-center bg-gray-100 rounded-full px-4 py-2">
-                <Search size={16} className="text-gray-400" />
+              <form
+                role="search"
+                onSubmit={handleSearch}
+                className="flex items-center bg-gray-100 rounded-full px-4 py-2"
+              >
+                <button
+                  type="submit"
+                  disabled={!search.trim()}
+                  aria-label={t("navbar.searchPlaceholder")}
+                  className="text-gray-500 hover:text-blue-600 disabled:opacity-50"
+                >
+                  <Search size={16} />
+                </button>
 
                 <input
-                  type="text"
+                  type="search"
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
                   placeholder={t("navbar.searchPlaceholder")}
-                  className="ml-2 bg-transparent focus:outline-none text-sm w-48"
+                  aria-label={t("navbar.searchPlaceholder")}
+                  className="ml-2 bg-transparent focus:outline-none text-sm w-48 text-gray-900"
                 />
-              </div>
+              </form>
               {user && (
                 <Link
                   href="/social"
