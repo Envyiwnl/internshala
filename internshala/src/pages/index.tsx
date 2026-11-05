@@ -134,7 +134,7 @@ export default function SvgSlider() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 bg-white">
       <div className="text-center mb-12">
-        <h1 className="text-4xl font-bold text-gray-900 mb-4">
+        <h1 className="mb-4 text-3xl font-bold leading-tight text-gray-900 sm:text-4xl">
           {t("home.dreamCareer")}
         </h1>
 
@@ -157,7 +157,9 @@ export default function SvgSlider() {
         >
           {slides.map((slide, index) => (
             <SwiperSlide key={index}>
-              <div className={`relative h-[400px] ${slide.bgColor}`}>
+              <div
+                className={`relative h-[240px] sm:h-[320px] lg:h-[400px] ${slide.bgColor}`}
+              >
                 <div className="absolute inset-0 opacity-20">
                   <svg
                     className="w-full h-full"
@@ -231,8 +233,8 @@ export default function SvgSlider() {
                   </svg>
                 </div>
 
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <h2 className="text-4xl font-bold text-white">
+                <div className="absolute inset-0 flex items-center justify-center px-6 text-center">
+                  <h2 className="max-w-3xl text-2xl font-bold leading-tight text-white sm:text-3xl lg:text-4xl">
                     {t(slide.titleKey)}
                   </h2>
                 </div>

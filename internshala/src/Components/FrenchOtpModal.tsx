@@ -216,8 +216,8 @@ export default function FrenchOtpModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 px-4">
-      <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto bg-black/50 px-3 py-4">
+      <div className="max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto rounded-xl bg-white p-4 shadow-xl sm:p-6">
         <h2 className="text-xl font-semibold text-gray-900">
           {t("language.verifyFrench")}
         </h2>
@@ -232,7 +232,7 @@ export default function FrenchOtpModal({
             value={otp}
             onChange={(event) => setOtp(event.target.value.replace(/\D/g, ""))}
             placeholder="123456"
-            className="w-full rounded-lg border border-gray-300 px-4 py-3 text-center text-xl tracking-[0.5em] text-gray-900 outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full min-w-0 rounded-lg border border-gray-300 px-3 py-3 text-center text-lg tracking-[0.25em] text-gray-900 outline-none focus:ring-2 focus:ring-blue-500 sm:px-4 sm:text-xl sm:tracking-[0.5em]"
           />
 
           <div className="mt-4 text-center">

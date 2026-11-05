@@ -232,7 +232,7 @@ function index() {
 
                   <p className="text-gray-600 mb-4">{internship.company}</p>
 
-                  <div className="grid grid-cols-3 gap-4 mb-6">
+                  <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
                     <div className="flex items-center space-x-2 text-gray-600">
                       <PlayCircle className="h-5 w-5" />
 

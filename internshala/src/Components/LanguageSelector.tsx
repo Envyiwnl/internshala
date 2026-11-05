@@ -137,7 +137,7 @@ export default function LanguageSelector() {
         value={i18n.resolvedLanguage || i18n.language}
         onChange={handleLanguageChange}
         aria-label={t("language.selectLanguage")}
-        className="border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+        className="max-w-[112px] truncate rounded-lg border border-gray-300 bg-white px-2 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 sm:max-w-[150px] lg:max-w-[120px] xl:max-w-none"
       >
         {Object.entries(SUPPORTED_LANGUAGES).map(([code, name]) => (
           <option key={code} value={code}>

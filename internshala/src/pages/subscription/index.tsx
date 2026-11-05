@@ -222,7 +222,7 @@ export default function SubscriptionPage() {
     });
 
     return () => unsubscribe();
-  }, [refresh, syncPayment]);
+  }, [refresh, syncPayment, loadPlans]);
 
   const formatDate = (date: string | null) =>
     date

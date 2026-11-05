@@ -231,20 +231,23 @@ export default function PostComments({
 
   return (
     <div className="border-t border-gray-100 bg-gray-50 px-5 py-4">
-      <form onSubmit={handleCreateComment} className="flex items-start gap-2">
+      <form
+        onSubmit={handleCreateComment}
+        className="flex flex-col gap-2 sm:flex-row sm:items-start"
+      >
         <textarea
           value={commentText}
           onChange={(event) => setCommentText(event.target.value)}
           placeholder={t("social.writeComment")}
           rows={2}
           disabled={submitting}
-          className="min-h-[44px] flex-1 resize-none rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-800 outline-none focus:border-blue-400 disabled:bg-gray-100"
+          className="min-h-[44px] min-w-0 w-full flex-1 resize-none rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-800 outline-none focus:border-blue-400 disabled:bg-gray-100"
         />
 
         <button
           type="submit"
           disabled={!commentText.trim() || submitting}
-          className="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-300"
+          className="w-full rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-300 sm:w-auto"
         >
           {submitting ? t("social.commentPosting") : t("social.postComment")}
         </button>

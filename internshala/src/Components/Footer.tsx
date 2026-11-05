@@ -8,7 +8,7 @@ export default function Footer() {
   return (
     <footer className="bg-gray-800 text-white py-12">
       <div className="container mx-auto px-6">
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
+        <div className="grid grid-cols-1 gap-6 min-[400px]:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
           <FooterSection
             title={t("footer.internshipByPlaces")}
             items={[
@@ -62,7 +62,7 @@ export default function Footer() {
 
         <hr className="my-10 border-gray-600" />
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
+        <div className="grid grid-cols-1 gap-6 min-[400px]:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
           <FooterSection
             title={t("footer.aboutUs")}
             items={[t("footer.startups"), t("footer.enterprise")]}

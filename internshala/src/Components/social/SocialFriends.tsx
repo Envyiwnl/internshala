@@ -299,8 +299,11 @@ export default function SocialFriends() {
       <div className="p-5">
         {activeTab === "discover" && (
           <>
-            <form onSubmit={handleSearch} className="mb-5 flex gap-2">
-              <div className="flex flex-1 items-center rounded-xl border border-gray-200 px-3">
+            <form
+              onSubmit={handleSearch}
+              className="mb-5 flex flex-col gap-2 sm:flex-row"
+            >
+              <div className="flex min-w-0 flex-1 items-center rounded-xl border border-gray-200 px-3">
                 <Search size={18} className="text-gray-400" />
 
                 <input

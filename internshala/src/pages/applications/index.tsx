@@ -175,7 +175,7 @@ const index = () => {
                 </div>
               </div>
 
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <button
                   onClick={() => setFilter("all")}
                   className={`px-4 py-2 rounded-lg text-sm font-medium ${
@@ -223,8 +223,8 @@ const index = () => {
             </div>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
+          <div className="max-w-full overflow-x-auto">
+            <table className="min-w-[760px] divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
                   <th

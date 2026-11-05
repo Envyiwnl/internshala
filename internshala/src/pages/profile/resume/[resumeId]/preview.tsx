@@ -924,7 +924,7 @@ const index = () => {
           )}
 
           <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_350px]">
-            <div>
+            <div className="min-w-0">
               <div className="mb-3 flex items-center justify-between">
                 <h2 className="font-semibold text-gray-900">
                   {t("resumePreview.preview")}
